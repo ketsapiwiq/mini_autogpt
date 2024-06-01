@@ -50,10 +50,10 @@ Note: I am still in development, so please be patient with me! <3
     # write the pic in print line by line with a tiny delay between each line, then add the message below as if someone was typing it.
     for line in pic.split("\n"):
         print(line)
-        time.sleep(0.1)
+        # time.sleep(0.1)
     for char in message:
         print(char, end="", flush=True)
-        time.sleep(0.05)
+        # time.sleep(0.05)
 
 
 def start_mini_autogpt():
