@@ -31,6 +31,10 @@ def summarize_text(text, max_new_tokens=100):
     Summarize the given text using the given LLM model.
     """
     # Define the prompt for the LLM model.
+
+    load_dotenv()
+    model = os.getenv("MODEL")
+
     messages = (
         {
             "role": "system",
@@ -41,6 +45,7 @@ def summarize_text(text, max_new_tokens=100):
 
     data = {
         "mode": "instruct",
+        "model": model,
         "messages": messages,
         "user_bio": "",
         "max_new_tokens": max_new_tokens,
