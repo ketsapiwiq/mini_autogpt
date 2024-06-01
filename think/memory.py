@@ -56,7 +56,7 @@ def summarize_text(text, max_new_tokens=100):
     log("Sending to LLM for summary...")
     response = llm.send(data)
     log("LLM answered with summary!")
-
+    log(json.dumps(response.json()))
     # Extract the summary from the response.
     summary = response.json()["choices"][0]["message"]["content"]
 

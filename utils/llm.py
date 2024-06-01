@@ -3,7 +3,7 @@ from utils.log import log
 import think.memory as memory
 import os
 from dotenv import load_dotenv
-
+import json
 
 def one_shot_request(prompt, system_context):
     history = []
@@ -46,6 +46,7 @@ def send(data):
     headers = {"Content-Type": "application/json"}
 
     try:
+        # log("sending: "+json.dumps(data))
         response = requests.post(api_url, headers=headers, json=data)
         return response
     except Exception as e:
