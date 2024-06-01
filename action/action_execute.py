@@ -28,10 +28,9 @@ def extract_command(assistant_message):
         json_message = json_message.split("{")[1:]
         json_message = "{"+"{".join(json_message)
     if not json_message.endswith('}'):
-        json_message = json_message.split("}").pop()
+        json_message = json_message.split("}")[:-1]
         json_message = "}".join(json_message)+"}"
     json_message = json_message.strip()
-    # json_message = loosejson.parse_loosely_defined_json(json_message)
     log("Parsed JSON:")
     log(json_message)
     command = json.JSONDecoder().decode(json_message)
