@@ -62,7 +62,7 @@ def think():
     if response.status_code == 200:
         # Extracting and printing the assistant's message
         thoughts = response.json()["choices"][0]["message"]["content"]
-        log("*** I thinkk I have finished thinking! *** \n")
+        log("*** I think I have finished thinking! *** \n")
         memory.save_thought(thoughts, context=history)
         return thoughts
     else:
