@@ -39,6 +39,7 @@ def evaluate_decision(thoughts, decision):
 
         save_debug(history, response=response.json())
         log("Retry Decision as faulty JSON!")
+        history.append({"role": "system", "content": "Final JSON:\n"})
         return evaluate_decision(thoughts, decision)
 
 def think():

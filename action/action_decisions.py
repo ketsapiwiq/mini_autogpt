@@ -60,6 +60,7 @@ def decide(thoughts):
 
             save_debug(history, response=response.json())
             log("Retry Decision as faulty JSON!")
+            history.append({"role": "system", "content": "Final JSON:\n"})
             return decide(thoughts)
     else:
         raise Exception
