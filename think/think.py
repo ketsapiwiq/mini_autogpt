@@ -24,8 +24,22 @@ def evaluate_decision(thoughts, decision):
     history.append({"role": "user", "content": context})
     response = llm.llm_request(history)
 
-    return response.json()["choices"][0]["message"]["content"]
+    assistant_message = response.json()["choices"][0]["message"]["content"]
 
+    if not validate_json(assistant_message):
+        assistant_message = extract_json_from_response(assistant_message)
+
+    if validate_json(assistant_message):
+        return assistant_message
+    else:
+        fail_counter = fail_counter + 1
+        if fail_counter >= 5:
+            log("Got too many bad quality responses!")
+            exit(1)
+
+        save_debug(history, response=response.json())
+        log("Retry Decision as faulty JSON!")
+        return evaluate_decision(thoughts, decision)
 
 def think():
     """
