@@ -168,9 +168,9 @@ class TelegramUtils:
     async def get_bot(self):
         bot_token = self.api_key
         bot = Bot(token=bot_token)
-        commands = await bot.get_my_commands()
-        if len(commands) == 0:
-            await self.set_commands(bot)
+        # commands = await bot.get_my_commands()
+        # if len(commands) == 0:
+        #     await self.set_commands(bot)
         return bot
 
     def _send_message(self, message, speak=False):
