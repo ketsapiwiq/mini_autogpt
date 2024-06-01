@@ -54,7 +54,7 @@ def decide(thoughts):
             return assistant_message
         else:
             fail_counter = fail_counter + 1
-            if fail_counter >= 100:
+            if fail_counter >= 5:
                 log("Got too many bad quality responses!")
                 exit(1)
 
@@ -109,7 +109,7 @@ def extract_json_from_response(response_text):
             # Parse the JSON string
             parsed_json = json.loads(json_str)
             # Pretty print the parsed JSON
-            # log(json.dumps(parsed_json, indent=4, ensure_ascii=False))
+            log(json.dumps(parsed_json, indent=4, ensure_ascii=False))
             return parsed_json
         except json.JSONDecodeError as e:
             log(f"Error parsing JSON: {e}")
