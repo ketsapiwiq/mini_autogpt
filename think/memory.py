@@ -6,6 +6,9 @@ import tiktoken
 import think.prompt as prompt
 import utils.llm as llm
 
+from dotenv import load_dotenv
+
+import os
 
 def log(message):
     # print with purple color
