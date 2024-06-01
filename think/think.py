@@ -67,4 +67,5 @@ def think():
         return thoughts
     else:
         log(response.status_code)
+        log(response.content)
         raise Exception
