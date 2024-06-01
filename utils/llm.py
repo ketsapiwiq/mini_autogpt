@@ -29,9 +29,9 @@ def llm_request(history):
         "mode": "instruct",
         "model": model,
         "messages": history,
-        "temperature": temperature,
+        "temperature": float(temperature),
         "user_bio": "",
-        "max_tokens": max_tokens,
+        "max_tokens": int(max_tokens),
         "truncation_length": truncation_length,
         "max_new_tokens": max_new_tokens,
     }
