@@ -2,9 +2,9 @@ import json
 import think.memory as memory
 import think.prompt as prompt
 import utils.llm as llm
-from action.action_decisions import decide
+from action.action_decisions import decide, validate_json, extract_json_from_response
 from action.action_execute import take_action
-from utils.log import log
+from utils.log import log, save_debug
 
 
 def run_think():
@@ -32,6 +32,7 @@ def evaluate_decision(thoughts, decision):
     if validate_json(assistant_message):
         return assistant_message
     else:
+        global fail_counter
         fail_counter = fail_counter + 1
         if fail_counter >= 5:
             log("Got too many bad quality responses!")

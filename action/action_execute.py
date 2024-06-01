@@ -23,7 +23,8 @@ DUCKDUCKGO_MAX_ATTEMPTS = 3
 fail_counter = 0
 
 
-def take_action(assistant_message):
+def take_action(command):
+# def take_action(assistant_message):
     global fail_counter
     load_dotenv()
 
@@ -33,7 +34,7 @@ def take_action(assistant_message):
     telegram = TelegramUtils(api_key=telegram_api_key, chat_id=telegram_chat_id)
 
     try:
-        command = json.JSONDecoder().decode(assistant_message)
+        # command = json.JSONDecoder().decode(assistant_message)
 
         action = command["command"]["name"]
         content = command["command"]["args"]
