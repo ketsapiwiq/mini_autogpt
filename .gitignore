@@ -8,3 +8,6 @@ global-exclude __pycache__
 memories.json
 response_history.json
 thought_history.json
+conversation_history.json
+debug_data.json
+debug_response.json
