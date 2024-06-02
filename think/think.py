@@ -30,7 +30,11 @@ def evaluate_decision(thoughts, decision):
         assistant_message = extract_json_from_response(assistant_message)
 
     if validate_json(assistant_message):
-        return assistant_message
+            # Parse the JSON string
+        parsed_json = json.loads(assistant_message)
+            # Pretty print the parsed JSON
+            # log(json.dumps(parsed_json, indent=4, ensure_ascii=False))
+        return parsed_json
     else:
         global fail_counter
         fail_counter = fail_counter + 1
