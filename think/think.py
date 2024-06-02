@@ -6,6 +6,7 @@ from action.action_decisions import decide, validate_json, extract_json_from_res
 from action.action_execute import take_action
 from utils.log import log, save_debug
 
+fail_counter = 0
 
 def run_think():
     thinking = think()  # takes
@@ -26,15 +27,14 @@ def evaluate_decision(thoughts, decision):
 
     assistant_message = response.json()["choices"][0]["message"]["content"]
 
-    if not validate_json(assistant_message):
-        assistant_message = extract_json_from_response(assistant_message)
+    assistant_message = extract_json_from_response(assistant_message)
 
     if validate_json(assistant_message):
-            # Parse the JSON string
-        parsed_json = json.loads(assistant_message)
-            # Pretty print the parsed JSON
-            # log(json.dumps(parsed_json, indent=4, ensure_ascii=False))
-        return parsed_json
+        # Parse the JSON string
+        # parsed_json = json.loads(assistant_message)
+        # Pretty print the parsed JSON
+        # log(json.dumps(parsed_json, indent=4, ensure_ascii=False))
+        return assistant_message
     else:
         global fail_counter
         fail_counter = fail_counter + 1
