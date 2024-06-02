@@ -93,8 +93,8 @@ def validate_json(test_response):
                 return False
         return True
     except Exception as e:
-        log("test response was: \n" + test_response + "\n END of test response")
-        log(traceback.format_exc())
+        # log("test response was: \n" + test_response + "\n END of test response")
+        # log(traceback.format_exc())
         log(e)
         return False
 
