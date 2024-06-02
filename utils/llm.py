@@ -40,6 +40,8 @@ def llm_request(history):
             base_url=api_url,
         )
 
+        log(f"Attempting request with MODEL={model} to URL={api_url}")  # Added logging
+
         # Send the request with streaming enabled
         response = client.chat.completions.create(
             model=model,
