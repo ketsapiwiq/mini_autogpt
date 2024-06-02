@@ -40,10 +40,10 @@ def take_action(command):
         content = command["command"]["args"]
 
         if action == "ask_user":
-            ask_user_respnse = telegram.ask_user(content["message"])
+            ask_user_response = telegram.ask_user(content["message"])
             user_response = f"The user's answer: '{ask_user_respnse}'"
             print("User responded: " + user_response)
-            if ask_user_respnse == "/debug":
+            if ask_user_response == "/debug":
                 telegram.send_message(str(assistant_message))
                 log("received debug command")
             memory.add_to_response_history(content["message"], user_response)
@@ -94,7 +94,7 @@ def take_action(command):
         log(e)
         log(traceback.format_exc())
         log("Faulty message start:")
-        log(assistant_message)
+        log(command)
         log("end of faulty message.")
         log("END OF ERROR WITHIN JSON RESPONSE!")
 
