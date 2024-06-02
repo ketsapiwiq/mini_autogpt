@@ -60,7 +60,7 @@ def start_mini_autogpt():
     write_start_message()
 
     # delete thoughts from memory
-    # memory.forget_everything()
+    memory.forget_everything()
 
     # run the main loop, nothing more to do in main.py
     while True:
