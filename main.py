@@ -60,7 +60,7 @@ def start_mini_autogpt():
     write_start_message()
 
     # delete thoughts from memory
-    memory.forget_everything()
+    # memory.forget_everything()
 
     base_prompt = "I want my AI to code new agent modules for me (browse web, run docker code, etc.).",
     # {

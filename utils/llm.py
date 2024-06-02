@@ -68,6 +68,7 @@ def build_context(history, conversation_history, message_history):
         for message in message_history:
             if message:
                 context += str(message)
+                log("Adding message to context:"+ str(message))
     memories = memory.load_memories()
     if memories:
         context += "\nMemories:\n"
@@ -80,6 +81,9 @@ def build_context(history, conversation_history, message_history):
                 "content": str(context),
             }
         )
+        log("Built context:"+ str(context)
+            )
+
     return history
 
 

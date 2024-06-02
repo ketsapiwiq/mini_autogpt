@@ -13,12 +13,30 @@ commands = [
         "args": {"message": "<message that awaits user input>"},
         "enabled": True,
     },
-    {
-        "name": "conversation_history",
-        "description": "gets the full conversation history",
-        "args": None,
-        "enabled": True,
-    },
+    # {
+    #     "name": "get_latest_memory",
+    #     "description": "gets the latest memory (First-in Last Out stack)",
+    #     "args": {"memory_size": 5},
+    #     "enabled": True,
+    # },
+    # {
+    #     "name": "push_memory",
+    #     "description": "gets the latest memory (First-in Last Out stack)",
+    #     "args": {"memory_size": 5},
+    #     "enabled": True,
+    # },
+    # {
+    #     "name": "pop_memory",
+    #     "description": "gets the latest memory (First-in Last Out stack)",
+    #     "args": {"memory_size": 5},
+    #     "enabled": True,
+    # },
+    # {
+    #     "name": "conversation_history",
+    #     "description": "gets the full conversation history",
+    #     "args": None,
+    #     "enabled": True,
+    # },
     {
         "name": "web_search",
         "description": "search the web for keyword",

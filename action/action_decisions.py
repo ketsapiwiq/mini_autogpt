@@ -28,7 +28,8 @@ def decide(thoughts):
     history = llm.build_context(
         history=history,
         conversation_history=memory.get_response_history(),
-        message_history=memory.load_response_history()[-2:],
+        message_history=memory.load_response_history(),
+        # message_history=memory.load_response_history()[-2:],
         # conversation_history=telegram.get_previous_message_history(),
         # message_history=telegram.get_last_few_messages(),
     )

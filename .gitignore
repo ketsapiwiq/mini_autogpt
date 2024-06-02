@@ -11,5 +11,9 @@ thought_history.json
 conversation_history.json
 debug_data.json
 debug_response.json
+<<<<<<< HEAD
 
 venv
+=======
+venv
+>>>>>>> 7493733 (debug context)

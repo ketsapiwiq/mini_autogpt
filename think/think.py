@@ -87,6 +87,32 @@ def think(history):
     """
     print("History: "+json.dumps(history))
     log("*** I am thinking... ***")
+    history = llm.build_prompt(prompt.thought_prompt)
+
+    thought_history = memory.load_thought_history()
+    thought_summaries = [json.loads(item)["summary"] for item in thought_history]
+
+    message_history=memory.load_response_history(),
+    
+    log("thought_summaries:"+json.dumps(thought_summaries))
+    log("thought_history:"+json.dumps(thought_history))
+    log("message_history:"+json.dumps(message_history))
+    llm.build_context(
+        history=history,
+        conversation_history=thought_summaries,
+        # message_history=telegram.get_last_few_messages()+memory.load_response_history(),
+        message_history=message_history,
+        # message_history=memory.load_response_history()[-2:],
+        # conversation_history=telegram.get_previous_message_history(),
+        # message_history=telegram.get_last_few_messages(),
+    )
+
+    history.append(
+        {
+            "role": "user",
+            "content": "Formulate your thoughts and explain them as detailed as you can.",
+        },
+    )
 
     response = llm.llm_request(history)
     if response.status_code == 200:

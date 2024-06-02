@@ -189,6 +189,7 @@ def get_response_history():
     try:
         response_history = load_response_history()
         if len(response_history) == 0:
+            log("There is no previous response history.")
             return "There is no previous response history."
 
         # Assuming a similar function exists for counting tokens and summarizing
@@ -211,6 +212,7 @@ def get_response_history():
 def load_response_history():
     """Load the response history from a file."""
     try:
+        log("Opening response_history.json")
         with open("response_history.json", "r") as f:
             response_history = json.load(f)
         return response_history
