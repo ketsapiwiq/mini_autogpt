@@ -40,11 +40,11 @@ def decide(thoughts):
         },
     )
 
-    response = llm.llm_request(history)
+    response = llm.ollama_request(history)
 
     if response.status_code == 200:
         # Extracting and printing the assistant's message
-        assistant_message = response.json()["choices"][0]["message"]["content"]
+        assistant_message = response['message']['content']
         log("finished deciding!")
 
         if not validate_json(assistant_message):

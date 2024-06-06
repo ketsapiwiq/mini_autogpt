@@ -23,9 +23,9 @@ def evaluate_decision(thoughts, decision):
     history = llm.build_prompt(prompt.evaluation_prompt)
     context = f"Thoughts: {thoughts} \n Decision: {decision}"
     history.append({"role": "user", "content": context})
-    response = llm.llm_request(history)
+    response = llm.ollama_request(history)
 
-    assistant_message = response.json()["choices"][0]["message"]["content"]
+    assistant_message = response['message']['content']
 
     assistant_message = extract_json_from_response(assistant_message)
 
@@ -77,11 +77,12 @@ def think():
             "content": "Formulate your thoughts and explain them as detailed as you can.",
         },
     )
-
-    response = llm.llm_request(history)
+    log("Sending request...")
+    response = llm.ollama_request(history)
+    log("Received response")
     if response.status_code == 200:
         # Extracting and printing the assistant's message
-        thoughts = response.json()["choices"][0]["message"]["content"]
+        thoughts = response['message']['content']
         log("*** I think I have finished thinking! *** \n")
         memory.save_thought(thoughts, context=history)
         return thoughts

@@ -46,19 +46,20 @@ def summarize_text(text, max_new_tokens=100):
         {"role": "user", "content": f"Please summarize the following text: {text}"},
     )
 
-    data = {
-        "mode": "instruct",
-        "model": model,
-        "messages": messages,
-        "user_bio": "",
-        "max_new_tokens": max_new_tokens,
-    }
+    # data = {
+    #     "mode": "instruct",
+    #     "model": model,
+    #     "messages": messages,
+    #     "user_bio": "",
+    #     "max_new_tokens": max_new_tokens,
+    # }
     log("Sending to LLM for summary...")
-    response = llm.send(data)
+    # response = llm.send(data)
+    response = llm.ollama_request(messages)
     log("LLM answered with summary!")
-    log(json.dumps(response.json()))
+    log(response['message']['content'])
     # Extract the summary from the response.
-    summary = response.json()["choices"][0]["message"]["content"]
+    summary = response['message']['content']
 
     return summary
 

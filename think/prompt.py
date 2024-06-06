@@ -17,7 +17,7 @@ commands = [
         "name": "conversation_history",
         "description": "gets the full conversation history",
         "args": None,
-        "enabled": True,
+        "enabled": False,
     },
     {
         "name": "web_search",
