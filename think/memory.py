@@ -1,7 +1,7 @@
 import json
 import traceback
 
-import tiktoken
+# import tiktoken
 
 import think.prompt as prompt
 import utils.llm as llm
@@ -14,19 +14,21 @@ def log(message):
     # print with purple color
     print("\033[94m" + str(message) + "\033[0m")
 
+def count_string_tokens(text, model_name):
+    return len((str(text)).split(" "))
 
-def count_string_tokens(text, model_name="gpt-3.5-turbo"):
-    """Returns the number of tokens used by a list of messages."""
-    model = model_name
-    try:
-        encoding = tiktoken.encoding_for_model(model)
-        return len(encoding.encode(text))
-    except KeyError:
-        encoding = tiktoken.get_encoding("cl100k_base")
-    # note: future models may deviate from this
-    except Exception as e:
-        log(f"Sophie: Error while counting tokens: {e}")
-        log(traceback.format_exc())
+# def count_string_tokens(text, model_name="gpt-3.5-turbo"):
+#     """Returns the number of tokens used by a list of messages."""
+#     model = model_name
+#     try:
+#         encoding = tiktoken.encoding_for_model(model)
+#         return len(encoding.encode(text))
+#     except KeyError:
+#         encoding = tiktoken.get_encoding("cl100k_base")
+#     # note: future models may deviate from this
+#     except Exception as e:
+#         log(f"Sophie: Error while counting tokens: {e}")
+#         log(traceback.format_exc())
 
 
 def summarize_text(text, max_new_tokens=100):
@@ -70,6 +72,7 @@ def chunk_text(text, max_tokens=3000):
 
     for message in text.split(" "):
         if (
+            # len((str(chunk) + str(message)).split())
             count_string_tokens(str(chunk) + str(message), model_name="gpt-4")
             <= max_tokens
         ):

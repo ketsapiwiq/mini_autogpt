@@ -1,7 +1,7 @@
-import time
 import think.think as think
 import think.memory as memory
-
+import json
+import utils.llm as llm
 # this is a test for using history from sophie_chat instead of the message history.
 
 # feedback: It kindda works. But for some reason the llm starts repeating my input
@@ -62,9 +62,29 @@ def start_mini_autogpt():
     # delete thoughts from memory
     memory.forget_everything()
 
+    base_prompt = "I want my AI to code new agent modules for me (browse web, run docker code, etc.).",
+    # {
+    #     "role": "user",
+    #     "content": "I want my AI to code new agent modules for me (browse web, run docker code, etc.).",
+    # }
+    history = llm.build_prompt(base_prompt)
+
+    thought_history = memory.load_thought_history()
+    thought_summaries = [json.loads(item)["summary"] for item in thought_history]
+
+    history = llm.build_context(
+        history=history,
+        conversation_history=thought_summaries,
+        message_history=memory.load_response_history()[-2:],
+        # conversation_history=telegram.get_previous_message_history(),
+        # message_history=telegram.get_last_few_messages(),
+    )
+    # history = llm.build_prompt(prompt.thought_prompt)
+
     # run the main loop, nothing more to do in main.py
     while True:
-        think.run_think()
+        think.run_think(history)
+        input()
 
 
 if __name__ == "__main__":
