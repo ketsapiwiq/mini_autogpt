@@ -93,10 +93,12 @@ def think(history):
     thought_summaries = [json.loads(item)["summary"] for item in thought_history]
 
     message_history=memory.load_response_history(),
-    
+    log("message_history:"+json.dumps(message_history))
+    log("Summarizing thought summaries...")
+    thought_summaries = [{"role": "system", "message": memory.summarize_text(json.dumps(thought_summaries))}]
+
     log("thought_summaries:"+json.dumps(thought_summaries))
     log("thought_history:"+json.dumps(thought_history))
-    log("message_history:"+json.dumps(message_history))
     llm.build_context(
         history=history,
         conversation_history=thought_summaries,
@@ -110,7 +112,8 @@ def think(history):
     history.append(
         {
             "role": "user",
-            "content": "Formulate your thoughts and explain them as detailed as you can.",
+            # "role": "system",
+            "content": "Formulate what is to be concluded from all this context and explain your thoughts as detailed as you can.",
         },
     )
 

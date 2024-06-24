@@ -102,11 +102,12 @@ def validate_json(test_response):
 
 def extract_json_from_response(response_text):
     # Find the index of the first opening brace and the last closing brace
+    log("Extracting JSON from: "+response_text)
     start_index = response_text.find("{")
     end_index = response_text.rfind("}")
-
     if start_index != -1 and end_index != -1 and end_index > start_index:
         json_str = response_text[start_index : end_index + 1]
+        log("Extracting JSON from: "+json_str)
         try:
             # Parse the JSON string
             parsed_json = json.loads(json_str)

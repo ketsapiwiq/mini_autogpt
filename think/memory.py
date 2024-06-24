@@ -194,6 +194,7 @@ def get_response_history():
 
         # Assuming a similar function exists for counting tokens and summarizing
         tokens = count_string_tokens(str(response_history), model_name="gpt-4")
+        log(tokens+" tokens for response")
         if tokens > 500:
             log("Response history is over 500 tokens. Summarizing...")
             chunks = chunk_text(str(response_history))
