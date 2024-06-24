@@ -1,5 +1,6 @@
+logger
 python-telegram-bot
-tiktoken
+# tiktoken
 requests
 python-dotenv
 asyncio

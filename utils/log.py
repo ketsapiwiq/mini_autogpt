@@ -1,9 +1,10 @@
 import json
 
+from logger import logging
 
 def log(message):
     # print with white color
-    print("\033[0m" + str(message) + "\033[0m")
+    logging.info("\033[0m" + str(message) + "\033[0m")
 
 
 def save_debug(data, response):

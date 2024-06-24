@@ -20,8 +20,8 @@ def one_shot_request(prompt, system_context):
 def llm_request(history):
     load_dotenv()
     model = os.getenv("MODEL")
-    temperature = os.getenv("TEMPERATURE")
-    max_tokens = os.getenv("MAX_TOKENS")
+    temperature = (os.getenv("TEMPERATURE") if os.getenv("TEMPERATURE") else "0.6")
+    max_tokens = os.getenv("MAX_TOKENS") if os.getenv("MAX_TOKENS") else "1024"
     truncation_length = os.getenv("TRUNCATION_LENGTH")
     max_new_tokens = os.getenv("MAX_NEW_TOKENS")
 
@@ -46,7 +46,7 @@ def send(data):
     headers = {"Content-Type": "application/json"}
 
     try:
-        # log("sending: "+json.dumps(data))
+        log("sending: "+json.dumps(data))
         response = requests.post(api_url, headers=headers, json=data)
         return response
     except Exception as e:
@@ -56,6 +56,7 @@ def send(data):
 
 
 def build_context(history, conversation_history, message_history):
+
     context = ""
     if conversation_history:
         context += "Context:\n"

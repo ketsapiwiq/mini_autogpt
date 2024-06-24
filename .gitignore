@@ -11,3 +11,5 @@ thought_history.json
 conversation_history.json
 debug_data.json
 debug_response.json
+
+venv
