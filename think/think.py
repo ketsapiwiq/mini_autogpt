@@ -1,6 +1,7 @@
 import json
 import think.memory as memory
 import think.prompt as prompt
+import action.tasks as tasks
 import utils.llm as llm
 from action.action_decisions import decide, validate_json, extract_json_from_response
 from action.action_execute import take_action
@@ -57,6 +58,9 @@ def think():
     Raises:
         Exception: If there is an error in the thinking process.
     """
+
+    tasks.get_first_task()
+    
     log("*** I am thinking... ***")
     history = llm.build_prompt(prompt.thought_prompt)
 
