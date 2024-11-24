@@ -16,43 +16,43 @@ def one_shot_request(prompt, system_context):
         log("Error in one_shot_request")
         return None
 
+import openai
+import os
+from dotenv import load_dotenv
+from utils.log import log
 
 def llm_request(history):
+    """
+    Sends a request to the OpenAI API using the ChatCompletion endpoint.
+    """
     load_dotenv()
+    model = os.getenv("MODEL", "llama3.1:8b-instruct-q8_0")
+    temperature = float(os.getenv("TEMPERATURE", 0.7))
+    max_tokens = int(os.getenv("MAX_TOKENS", 1024))
+    api_url = os.getenv("API_URL")
     model = os.getenv("MODEL")
-    temperature = os.getenv("TEMPERATURE")
-    max_tokens = os.getenv("MAX_TOKENS")
     truncation_length = os.getenv("TRUNCATION_LENGTH")
     max_new_tokens = os.getenv("MAX_NEW_TOKENS")
 
-    data = {
-        "mode": "instruct",
-        "model": model,
-        "messages": history,
-        "temperature": float(temperature),
-        "user_bio": "",
-        "max_tokens": int(max_tokens),
-        "truncation_length": truncation_length,
-        "max_new_tokens": max_new_tokens,
-    }
-    return send(data=data)
-
-
-def send(data):
-    # load environment variables
-    load_dotenv()
-    api_url = os.getenv("API_URL")
-
-    headers = {"Content-Type": "application/json"}
-
     try:
-        # log("sending: "+json.dumps(data))
-        response = requests.post(api_url, headers=headers, json=data)
+        # Use OpenAI's ChatCompletion API
+        client = openai.OpenAI(
+            api_key="yo",
+            base_url=api_url,
+            
+)
+        response = client.chat.completions.create(
+            model=model,
+            messages=history,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            stream=True
+        )
         return response
     except Exception as e:
-        log("Exception when talking to API:")
-        log(e)
-        exit(1)
+        log(f"Exception during OpenAI request: {e}")
+        raise
+
 
 
 def build_context(history, conversation_history, message_history):

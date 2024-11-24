@@ -1,1 +1,1 @@
-python3.11 ./main.py
+source ./venv/bin/activate; python ./main.py
