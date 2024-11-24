@@ -20,39 +20,47 @@ import openai
 import os
 from dotenv import load_dotenv
 from utils.log import log
-
 def llm_request(history):
     """
-    Sends a request to the OpenAI API using the ChatCompletion endpoint.
+    Sends a request to the OpenAI-compatible API using the ChatCompletion endpoint with streaming.
+    Processes and prints the response in real time.
     """
     load_dotenv()
     model = os.getenv("MODEL", "llama3.1:8b-instruct-q8_0")
     temperature = float(os.getenv("TEMPERATURE", 0.7))
     max_tokens = int(os.getenv("MAX_TOKENS", 1024))
     api_url = os.getenv("API_URL")
-    model = os.getenv("MODEL")
     truncation_length = os.getenv("TRUNCATION_LENGTH")
     max_new_tokens = os.getenv("MAX_NEW_TOKENS")
 
     try:
-        # Use OpenAI's ChatCompletion API
+        # Initialize OpenAI-compatible client
         client = openai.OpenAI(
-            api_key="yo",
+            api_key=os.getenv("OPENAI_API_KEY") or "test",
             base_url=api_url,
-            
-)
+        )
+
+        # Send the request with streaming enabled
         response = client.chat.completions.create(
             model=model,
             messages=history,
             temperature=temperature,
             max_tokens=max_tokens,
-            stream=True
+            stream=True,  # Enable streaming
         )
-        return response
+
+        # Process and print streamed chunks
+        # log("Streaming response:")
+        result = ""
+        for chunk in response:
+            message_content = chunk.choices[0].delta.content or ""
+            result += message_content
+            print(message_content, end="", flush=True)  # Real-time printing
+    
+        return result
     except Exception as e:
         log(f"Exception during OpenAI request: {e}")
         raise
-
 
 
 def build_context(history, conversation_history, message_history):
@@ -87,3 +95,6 @@ def build_prompt(base_prompt):
     prompt.append({"role": "system", "content": base_prompt})
 
     return prompt
+
+def send(history):
+    return llm_request(history)

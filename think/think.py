@@ -77,15 +77,14 @@ def think():
             "content": "Formulate your thoughts and explain them as detailed as you can.",
         },
     )
-
-    response = llm.llm_request(history)
-    if response.status_code == 200:
-        # Extracting and printing the assistant's message
-        thoughts = response.json()["choices"][0]["message"]["content"]
+    try:
+        response = llm.llm_request(history)
+    # Extracting and printing the assistant's message
+        thoughts = response
         log("*** I think I have finished thinking! *** \n")
         memory.save_thought(thoughts, context=history)
         return thoughts
-    else:
-        log(response.status_code)
-        log(response.content)
-        raise Exception
+    except Exception as e:
+        # log(response.status_code)
+        # log(response.content)
+        raise e
