@@ -29,8 +29,6 @@ def decide(thoughts):
         history=history,
         conversation_history=memory.get_response_history(),
         message_history=memory.load_response_history()[-2:],
-        # conversation_history=telegram.get_previous_message_history(),
-        # message_history=telegram.get_last_few_messages(),
     )
     history.append({"role": "user", "content": "Thoughts: \n" + thoughts})
     history.append(
@@ -41,29 +39,22 @@ def decide(thoughts):
     )
 
     response = llm.llm_request(history)
+    log("finished deciding!")
 
-    if response.status_code == 200:
-        # Extracting and printing the assistant's message
-        assistant_message = response.json()["choices"][0]["message"]["content"]
-        log("finished deciding!")
+    # Response is now directly the text content
+    if not validate_json(response):
+        response = extract_json_from_response(response)
+        
+    if not validate_json(response):
+        fail_counter = fail_counter + 1
+        if fail_counter >= 5:
+            log("Got too many bad quality responses!")
+            exit(1)
+        save_debug(history, response=response)
+        log("Retry Decision as faulty JSON!")
+        return decide(thoughts)
 
-        if not validate_json(assistant_message):
-            assistant_message = extract_json_from_response(assistant_message)
-
-        if validate_json(assistant_message):
-            return assistant_message
-        else:
-            fail_counter = fail_counter + 1
-            if fail_counter >= 5:
-                log("Got too many bad quality responses!")
-                exit(1)
-
-            save_debug(history, response=response.json())
-            log("Retry Decision as faulty JSON!")
-            history.append({"role": "system", "content": "Final JSON:\n"})
-            return decide(thoughts)
-    else:
-        raise Exception
+    return response
 
 
 def validate_json(test_response):
