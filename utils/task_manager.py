@@ -1,6 +1,7 @@
 import os
 import json
 from utils.log import log
+from datetime import datetime
 
 def get_first_task(folder_path="tasks"):
     """
@@ -83,3 +84,43 @@ def create_task(task_name, priority, description, status="pending"):
     except Exception as e:
         log(f"Error creating task file: {e}")
         return False
+
+def update_task_results(task_data, results, folder_path="tasks"):
+    """
+    Updates a task file with the results/insights from thinking about it.
+    
+    Args:
+        task_data (dict): The original task data
+        results (str): The thinking results to add
+        folder_path (str): The path to the tasks folder
+    
+    Returns:
+        bool: True if update was successful, False otherwise
+    """
+    if not os.path.isabs(folder_path):
+        folder_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), folder_path)
+    
+    # Find the task file that matches this task
+    for filename in os.listdir(folder_path):
+        if filename.endswith('.json'):
+            file_path = os.path.join(folder_path, filename)
+            try:
+                with open(file_path, 'r') as f:
+                    current_task = json.load(f)
+                
+                # Check if this is the matching task
+                if (current_task.get('task') == task_data.get('task') and 
+                    current_task.get('priority') == task_data.get('priority')):
+                    
+                    # Update the task with results
+                    current_task['last_thoughts'] = results
+                    current_task['last_updated'] = datetime.now().isoformat()
+                    
+                    # Write back to file
+                    with open(file_path, 'w') as f:
+                        json.dump(current_task, f, indent=4)
+                    return True
+            except (json.JSONDecodeError, OSError) as e:
+                log(f"Error updating task file {file_path}: {e}")
+                
+    return False

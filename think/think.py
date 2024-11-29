@@ -6,7 +6,7 @@ import utils.llm as llm
 from action.action_decisions import decide, validate_json, extract_json_from_response
 from action.action_execute import take_action
 from utils.log import log, save_debug
-from utils.task_manager import get_first_task
+from utils.task_manager import get_first_task, update_task_results
 
 fail_counter = 0
 
@@ -99,6 +99,28 @@ def think():
         thoughts = response
         log("*** I think I have finished thinking! *** \n")
         memory.save_thought(thoughts, context=history)
+        
+        # If we were thinking about a specific task, update its results
+        if current_task:
+            # Extract interesting insights using another LLM call
+            insight_history = llm.build_prompt("""You are a task analyzer. Extract the most interesting and actionable insights from the thinking results.
+Focus on concrete conclusions and next steps. Be concise and clear. Output in this format:
+{
+    "key_insights": ["insight 1", "insight 2", ...],
+    "next_steps": ["step 1", "step 2", ...],
+    "status_update": "brief status update"
+}""")
+            insight_history.append({"role": "user", "content": f"Extract insights from these thoughts:\n{thoughts}"})
+            
+            try:
+                insight_response = llm.llm_request(insight_history)
+                # Extract the JSON part from the response
+                insights = extract_json_from_response(insight_response)
+                if validate_json(insights):
+                    update_task_results(current_task, insights)
+            except Exception as e:
+                log(f"Error extracting insights: {e}")
+        
         return thoughts
     except Exception as e:
         raise e
