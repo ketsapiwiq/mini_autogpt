@@ -7,10 +7,9 @@ from action.action_decisions import decide, validate_json, extract_json_from_res
 from action.action_execute import take_action
 from utils.log import log, save_debug
 from utils.task_manager import get_first_task, update_task_results
+from utils.error_handling import ErrorCounter
 import datetime
 import traceback
-
-fail_counter = 0
 
 def run_think():
     thinking = think()  # takes
@@ -23,7 +22,6 @@ def run_think():
 
 
 def evaluate_decision(thoughts, decision):
-    global fail_counter
     # combine thoughts and decision and ask llm to evaluate the decision json and output an improved one
     history = llm.build_prompt(prompt.evaluation_prompt)
     
@@ -55,10 +53,10 @@ def evaluate_decision(thoughts, decision):
             return json.loads(assistant_message)
         except json.JSONDecodeError:
             log("Failed to parse JSON after validation")
-            fail_counter += 1
+            ErrorCounter.increment()
     else:
-        fail_counter += 1
-        if fail_counter >= 5:
+        ErrorCounter.increment()
+        if ErrorCounter.get_count() >= 5:
             log("Got too many bad quality responses!")
             exit(1)
 
@@ -117,6 +115,7 @@ Output in this JSON format (priority 1-5, lower is higher priority):
 }
 If no clear task can be extracted, return null.""")
             task_history.append({"role": "user", "content": f"Extract task from this message:\n{user_message}"})
+            
             try:
                 task_response = llm.llm_request(task_history)
                 task_data = json.loads(task_response) if validate_json(task_response) else None

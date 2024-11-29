@@ -1,17 +1,15 @@
-# import demjson as json
-# import loosejson
 import json
 import time
 import traceback
 from utils.log import log
 from utils.simple_telegram import TelegramUtils
 import think.memory as memory
+from utils.web_search import web_search
+from utils.error_handling import ErrorCounter
 
 from itertools import islice
 from duckduckgo_search import DDGS
 import os
-
-# import re
 
 from dotenv import load_dotenv
 
@@ -20,11 +18,8 @@ COMMAND_CATEGORY_TITLE = "Web Search"
 
 DUCKDUCKGO_MAX_ATTEMPTS = 3
 
-fail_counter = 0
-
 
 def take_action(command):
-    global fail_counter
     load_dotenv()
 
     telegram_api_key = os.getenv("TELEGRAM_API_KEY")
@@ -65,7 +60,6 @@ def take_action(command):
             memory.add_to_response_history(content["message"], "No response.")
         elif action == "web_search":
             try:
-                # TODO: use web_search.py, left it here as there was an error when using the imported one
                 query_result = web_search(query=content["query"])
                 log("web search done : " + query_result)
                 memory.add_to_response_history(
@@ -99,8 +93,8 @@ def take_action(command):
             log("Starting again I guess...")
             return
 
-        if fail_counter > 0:
-            fail_counter = 0
+        if ErrorCounter.get_error_count() > 0:
+            ErrorCounter.reset_error_count()
         log("Added to assistant content.")
     except Exception as e:
         log("ERROR WITHIN JSON RESPONSE!")
@@ -120,40 +114,3 @@ def safe_google_results(results: str | list):
     else:
         safe_message = results.encode("utf-8", "ignore").decode("utf-8")
     return safe_message
-
-
-def web_search(query: str, num_results: int = 3):
-    search_results = []
-    attempts = 0
-
-    while attempts < DUCKDUCKGO_MAX_ATTEMPTS:
-        if not query:
-            return json.dumps(search_results)
-
-        results = DDGS().text(query)
-        search_results = list(islice(results, num_results))
-
-        if search_results:
-            break
-
-        time.sleep(1)
-        attempts += 1
-
-    search_results = [
-        {
-            "title": r["title"],
-            "url": r["href"],
-            **({"exerpt": r["body"]} if r.get("body") else {}),
-        }
-        for r in search_results
-    ]
-
-    results = (
-        "## Search results\n"
-    ) + "\n\n".join(
-        f"### \"{r['title']}\"\n"
-        f"**URL:** {r['url']}  \n"
-        "**Excerpt:** " + (f'"{exerpt}"' if (exerpt := r.get("exerpt")) else "N/A")
-        for r in search_results
-    )
-    return safe_google_results(results)

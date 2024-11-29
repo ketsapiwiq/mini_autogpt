@@ -5,3 +5,6 @@ requests
 python-dotenv
 asyncio
 duckduckgo_search
+pytest
+pytest-cov
+coverage

@@ -7,6 +7,7 @@ from telegram import Bot, Update
 from telegram.error import TimedOut
 from telegram.ext import CallbackContext
 import think.memory as memory
+from utils.log import log
 
 
 response_queue = ""
@@ -23,11 +24,6 @@ def run_async(coro):
         if os.name == "nt":
             asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
         return asyncio.run(coro)
-
-
-def log(message):
-    # print with purple color
-    print("\033[95m" + str(message) + "\033[0m")
 
 
 class TelegramUtils:

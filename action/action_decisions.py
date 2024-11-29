@@ -9,9 +9,7 @@ from utils.log import log
 import think.prompt as prompt
 import think.memory as memory
 from utils.log import save_debug
-
-
-fail_counter = 0
+from utils.error_handling import ErrorCounter
 
 
 def extract_decision(thinking):
@@ -19,8 +17,6 @@ def extract_decision(thinking):
 
 
 def decide(thoughts):
-    global fail_counter
-
     log("deciding what to do...")
     history = []
     history.append({"role": "system", "content": prompt.action_prompt})
@@ -49,8 +45,8 @@ def decide(thoughts):
         response = extract_json_from_response(response)
         
     if not validate_json(response):
-        fail_counter = fail_counter + 1
-        if fail_counter >= 5:
+        ErrorCounter.increment()
+        if ErrorCounter.should_exit():
             log("Got too many bad quality responses!")
             exit(1)
         save_debug(history, response=response)
@@ -61,8 +57,6 @@ def decide(thoughts):
 
 
 def validate_json(test_response):
-    global fail_counter
-
     try:
         if test_response is None:
             log("received empty json?")
@@ -70,25 +64,31 @@ def validate_json(test_response):
 
         if isinstance(test_response, dict):
             response = test_response
-        elif test_response is str:
-            response = json.load(test_response)
+        elif isinstance(test_response, str):
+            response = json.loads(test_response)
         else:
             response = json.JSONDecoder().decode(test_response)
 
-        for key, value in response.items():
-            if not key.isidentifier() or not (
-                isinstance(value, int)
-                or isinstance(value, str)
-                or isinstance(value, bool)
-                or (isinstance(value, dict))  # and validate_json(value))
-                # or (isinstance(value, list) and all(validate_json(v) for v in value))
-            ):
-                log("type is wrong.")
-                return False
+        # Only validate the command structure according to schema
+        if "command" not in response:
+            log("missing command field")
+            return False
+            
+        command = response["command"]
+        if not isinstance(command, dict):
+            log("command must be an object")
+            return False
+            
+        if "name" not in command or not isinstance(command["name"], str):
+            log("command must have a name field that is a string")
+            return False
+            
+        if "args" not in command or not isinstance(command["args"], dict):
+            log("command must have an args field that is an object")
+            return False
+
         return True
     except Exception as e:
-        # log("test response was: \n" + test_response + "\n END of test response")
-        # log(traceback.format_exc())
         log(e)
         return False
 

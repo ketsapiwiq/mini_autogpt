@@ -100,7 +100,3 @@ def create_task(task_name, priority, description, status="pending"):
         json.dump(task_data, f, indent=4)
     
     return file_path
-
-# Example usage:
-# folder_path = '/path/to/json/folder'
-# print(get_first_task(folder_path))
