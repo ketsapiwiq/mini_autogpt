@@ -1,5 +1,7 @@
 import json
 import traceback
+import os
+import time
 
 import tiktoken
 
@@ -7,8 +9,6 @@ import think.prompt as prompt
 import utils.llm as llm
 
 from dotenv import load_dotenv
-
-import os
 
 def log(message):
     # print with purple color
@@ -75,26 +75,33 @@ def summarize_chunks(chunks):
     return summaries
 
 
-def get_previous_message_history():
-    """Get the previous message history."""
+def get_previous_message_history(self):
+    """Get the previous message history with improved context handling."""
     try:
-        if len(conversation_history) == 0:
+        if not self.conversation_history:
             return "There is no previous message history."
 
-        tokens = count_string_tokens(str(self.conversation_history), model_name="gpt-4")
-        if tokens > 3000:
-            log("Message history is over 3000 tokens. Summarizing...")
-            chunks = chunk_text(str(self.conversation_history))
-            summaries = summarize_chunks(chunks)
-            summarized_history = " ".join(summaries)
-            summarized_history += " " + " ".join(self.conversation_history[-6:])
-            return summarized_history
-
-        return conversation_history
+        # Get last few messages for immediate context
+        recent_messages = self.conversation_history[-10:]
+        
+        # Summarize older messages if they exist
+        older_messages = self.conversation_history[:-10] if len(self.conversation_history) > 10 else []
+        if older_messages:
+            tokens = count_string_tokens(str(older_messages), model_name="gpt-4")
+            if tokens > 1000:
+                chunks = chunk_text(str(older_messages))
+                summaries = summarize_chunks(chunks)
+                context = "Previous conversation summary: " + " ".join(summaries)
+            else:
+                context = "Previous messages: " + str(older_messages)
+                
+            return context + "\nRecent messages: " + str(recent_messages)
+        
+        return str(recent_messages)
     except Exception as e:
         log(f"Error while getting previous message history: {e}")
         log(traceback.format_exc())
-        exit(1)
+        return "Error retrieving message history"
 
 
 def load_conversation_history(self):
@@ -102,17 +109,56 @@ def load_conversation_history(self):
     try:
         with open("conversation_history.json", "r") as f:
             self.conversation_history = json.load(f)
+            
+        # Validate and clean history
+        if not isinstance(self.conversation_history, list):
+            self.conversation_history = []
+            
+        # Remove any malformed entries
+        self.conversation_history = [
+            msg for msg in self.conversation_history 
+            if isinstance(msg, (str, dict)) and msg
+        ]
+            
+        # Keep only last 100 messages to prevent memory bloat
+        if len(self.conversation_history) > 100:
+            self.conversation_history = self.conversation_history[-100:]
+            
+        log("Loaded conversation history:")
+        log(self.conversation_history)
     except FileNotFoundError:
-        # If the file doesn't exist, create it.
+        # If the file doesn't exist, create it
         self.conversation_history = []
-    log("Loaded conversation history:")
-    log(self.conversation_history)
+        self.save_conversation_history()
+    except json.JSONDecodeError:
+        # If file is corrupted, start fresh
+        self.conversation_history = []
+        self.save_conversation_history()
 
 
 def save_conversation_history(self):
     """Save the conversation history to a file."""
-    with open("conversation_history.json", "w") as f:
-        json.dump(self.conversation_history, f)
+    # Create backup of existing file
+    try:
+        if os.path.exists("conversation_history.json"):
+            backup_file = f"conversation_history_{int(time.time())}.bak"
+            os.rename("conversation_history.json", backup_file)
+    except:
+        pass
+        
+    # Write new file
+    try:
+        with open("conversation_history.json", "w") as f:
+            json.dump(self.conversation_history, f, indent=2)
+            
+        # Remove old backup if write successful
+        if os.path.exists(backup_file):
+            os.remove(backup_file)
+    except Exception as e:
+        # Restore backup if write failed
+        if os.path.exists(backup_file):
+            os.rename(backup_file, "conversation_history.json")
+        raise e
 
 
 def add_to_conversation_history(self, message):
@@ -125,7 +171,6 @@ def forget_conversation_history(self):
     """Forget the conversation history."""
     self.conversation_history = []
     self.save_conversation_history()
-
 
 
 def load_memories():
@@ -217,11 +262,11 @@ def get_previous_thought_history():
         if len(thought_history) == 0:
             return "There is no previous message history."
 
-        tokens = memory.count_string_tokens(str(thought_history), model_name="gpt-4")
+        tokens = count_string_tokens(str(thought_history), model_name="gpt-4")
         if tokens > 200:
             log("Message history is over 3000 tokens. Summarizing...")
-            chunks = memory.chunk_text(str(thought_history))
-            summaries = memory.summarize_chunks(chunks)
+            chunks = chunk_text(str(thought_history))
+            summaries = summarize_chunks(chunks)
             summarized_history = " ".join(summaries)
             summarized_history += " " + " ".join(thought_history[-6:])
             return summarized_history

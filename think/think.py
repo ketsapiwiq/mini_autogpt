@@ -7,6 +7,8 @@ from action.action_decisions import decide, validate_json, extract_json_from_res
 from action.action_execute import take_action
 from utils.log import log, save_debug
 from utils.task_manager import get_first_task, update_task_results
+import datetime
+import traceback
 
 fail_counter = 0
 
@@ -21,30 +23,46 @@ def run_think():
 
 
 def evaluate_decision(thoughts, decision):
+    global fail_counter
     # combine thoughts and decision and ask llm to evaluate the decision json and output an improved one
     history = llm.build_prompt(prompt.evaluation_prompt)
+    
+    # If decision is to ask user, include conversation history for context
+    try:
+        decision_dict = json.loads(decision) if isinstance(decision, str) else decision
+        if decision_dict.get("command") == "ask_user":
+            history = llm.build_context(
+                history=history,
+                conversation_history=memory.get_response_history(),
+                message_history=memory.load_response_history()[-2:]
+            )
+    except (json.JSONDecodeError, AttributeError):
+        pass
+        
     context = f"Thoughts: {thoughts} \n Decision: {decision}"
     history.append({"role": "user", "content": context})
     response = llm.llm_request(history)
 
-    assistant_message = response.json()["choices"][0]["message"]["content"]
-
-    assistant_message = extract_json_from_response(assistant_message)
+    # Response is already a string
+    assistant_message = response
+    
+    if not validate_json(assistant_message):
+        assistant_message = extract_json_from_response(assistant_message)
 
     if validate_json(assistant_message):
-        # Parse the JSON string
-        # parsed_json = json.loads(assistant_message)
-        # Pretty print the parsed JSON
-        # log(json.dumps(parsed_json, indent=4, ensure_ascii=False))
-        return assistant_message
+        # Ensure we return a proper dictionary
+        try:
+            return json.loads(assistant_message)
+        except json.JSONDecodeError:
+            log("Failed to parse JSON after validation")
+            fail_counter += 1
     else:
-        global fail_counter
-        fail_counter = fail_counter + 1
+        fail_counter += 1
         if fail_counter >= 5:
             log("Got too many bad quality responses!")
             exit(1)
 
-        save_debug(history, response=response.json())
+        save_debug(history, response=response)
         log("Retry Decision as faulty JSON!")
         history.append({"role": "system", "content": "Final JSON:\n"})
         return evaluate_decision(thoughts, decision)
@@ -68,21 +86,68 @@ def think():
     
     history = llm.build_prompt(prompt.thought_prompt)
     thought_history = memory.load_thought_history()
-    thought_summaries = [json.loads(item)["summary"] for item in thought_history]
+    
+    # Process thought history more carefully
+    thought_summaries = []
+    for item in thought_history:
+        try:
+            if isinstance(item, str):
+                thought_data = json.loads(item)
+            else:
+                thought_data = item
+            if isinstance(thought_data, dict) and "summary" in thought_data:
+                thought_summaries.append(thought_data["summary"])
+        except (json.JSONDecodeError, AttributeError):
+            continue
+    
+    # Get latest user message and create task if needed
+    message_history = memory.load_response_history()[-5:]  # Get last 5 messages for better context
+    if message_history:
+        latest_messages = [msg for msg in message_history if msg.get("role") == "user"]
+        if latest_messages:
+            user_message = latest_messages[-1].get("content")
+            # Create task from user message
+            task_history = llm.build_prompt("""You are a task analyzer. Extract a clear task from the user message.
+Output in this JSON format (priority 1-5, lower is higher priority):
+{
+    "task": "clear task description",
+    "priority": priority_number,
+    "description": "detailed description of what needs to be done",
+    "status": "pending"
+}
+If no clear task can be extracted, return null.""")
+            task_history.append({"role": "user", "content": f"Extract task from this message:\n{user_message}"})
+            try:
+                task_response = llm.llm_request(task_history)
+                task_data = json.loads(task_response) if validate_json(task_response) else None
+                if task_data:
+                    tasks.create_task(task_data["task"], task_data["priority"], 
+                                    task_data["description"], task_data["status"])
+            except Exception as e:
+                log(f"Error creating task from message: {e}")
 
+    # Build context with improved history handling
     history = llm.build_context(
         history=history,
-        conversation_history=thought_summaries,
-        message_history=memory.load_response_history()[-2:],
+        conversation_history=thought_summaries[-5:] if thought_summaries else None,  # Last 5 thought summaries
+        message_history=message_history
     )
 
     # If there's a task, think about it specifically
     if current_task:
         log(f"*** Thinking about task: {current_task['task']} ***")
+        
+        # Add task context
+        task_context = {
+            "current_task": current_task,
+            "thought_history": thought_summaries[-3:] if thought_summaries else [],  # Last 3 related thoughts
+            "message_context": message_history[-3:] if message_history else []  # Last 3 messages
+        }
+        
         history.append(
             {
                 "role": "user",
-                "content": f"Current task to think about:\n{json.dumps(current_task, indent=2)}\n\nFormulate your thoughts about this specific task and explain them as detailed as you can.",
+                "content": f"Current task and context:\n{json.dumps(task_context, indent=2)}\n\nAnalyze the task and context, then formulate detailed thoughts about how to proceed.",
             },
         )
     else:
@@ -90,7 +155,7 @@ def think():
         history.append(
             {
                 "role": "user",
-                "content": "Formulate your thoughts and explain them as detailed as you can.",
+                "content": "Based on the current context, formulate your thoughts about what should be done next.",
             },
         )
     
@@ -98,7 +163,18 @@ def think():
         response = llm.llm_request(history)
         thoughts = response
         log("*** I think I have finished thinking! *** \n")
-        memory.save_thought(thoughts, context=history)
+        
+        # Save thought with metadata
+        thought_data = {
+            "timestamp": datetime.datetime.utcnow().isoformat(),
+            "thought": thoughts,
+            "summary": thoughts[:200] + "..." if len(thoughts) > 200 else thoughts,
+            "context": {
+                "task_id": current_task.get("id") if current_task else None,
+                "message_count": len(message_history) if message_history else 0
+            }
+        }
+        memory.save_thought(json.dumps(thought_data), context=history)
         
         # If we were thinking about a specific task, update its results
         if current_task:
@@ -123,4 +199,6 @@ Focus on concrete conclusions and next steps. Be concise and clear. Output in th
         
         return thoughts
     except Exception as e:
+        log(f"Error in thinking process: {e}")
+        log(traceback.format_exc())
         raise e

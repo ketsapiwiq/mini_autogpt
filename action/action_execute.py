@@ -24,7 +24,6 @@ fail_counter = 0
 
 
 def take_action(command):
-# def take_action(assistant_message):
     global fail_counter
     load_dotenv()
 
@@ -34,17 +33,31 @@ def take_action(command):
     telegram = TelegramUtils(api_key=telegram_api_key, chat_id=telegram_chat_id)
 
     try:
-        # command = json.JSONDecoder().decode(assistant_message)
+        # Ensure command is a dictionary
+        if isinstance(command, str):
+            try:
+                command = json.loads(command)
+            except json.JSONDecodeError:
+                log("Failed to parse command as JSON")
+                return
 
-        action = command["command"]["name"]
-        content = command["command"]["args"]
+        if not isinstance(command, dict):
+            log(f"Command is not a dictionary: {type(command)}")
+            return
+
+        action = command.get("command", {}).get("name")
+        content = command.get("command", {}).get("args", {})
+
+        if not action:
+            log("No valid action found in command")
+            return
 
         if action == "ask_user":
             ask_user_response = telegram.ask_user(content["message"])
             user_response = f"The user's answer: '{ask_user_response}'"
             print("User responded: " + user_response)
             if ask_user_response == "/debug":
-                telegram.send_message(str(assistant_message))
+                telegram.send_message(str(command))
                 log("received debug command")
             memory.add_to_response_history(content["message"], user_response)
         elif action == "send_message" or action == "send_log":
@@ -75,7 +88,7 @@ def take_action(command):
                 log(e)
                 log(traceback.format_exc())
         else:
-            log(assistant_message)
+            log(command)
             log(
                 "action "
                 + str(action)

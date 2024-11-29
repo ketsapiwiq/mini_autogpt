@@ -25,11 +25,14 @@ def decide(thoughts):
     history = []
     history.append({"role": "system", "content": prompt.action_prompt})
 
-    history = llm.build_context(
-        history=history,
-        conversation_history=memory.get_response_history(),
-        message_history=memory.load_response_history()[-2:],
-    )
+    # Only load conversation history if thoughts indicate a need for context
+    if "previous" in thoughts.lower() or "context" in thoughts.lower():
+        history = llm.build_context(
+            history=history,
+            conversation_history=memory.get_response_history(),
+            message_history=memory.load_response_history()[-2:],
+        )
+    
     history.append({"role": "user", "content": "Thoughts: \n" + thoughts})
     history.append(
         {
