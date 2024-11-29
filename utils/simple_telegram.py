@@ -134,6 +134,8 @@ class TelegramUtils:
                 updates = await bot.get_updates(offset=last_update_id + 1, timeout=30)
                 for update in updates:
                     if update.message:
+                        from utils.telegram_handler import handle_telegram_message
+                        handle_telegram_message(update.message.to_dict())
                         return update
             except Exception as e:
                 log(f"Error while polling updates: {e}")

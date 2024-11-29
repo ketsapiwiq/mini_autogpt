@@ -1,13 +1,20 @@
 from typing import Dict
 from utils.task_tree import create_task_from_json
+from utils.simple_telegram import TelegramUtils
+
 
 def handle_telegram_message(message: Dict) -> str:
     """
-    Create a new task from an incoming Telegram message using JSON structure.
+    Create a new task from the last message in the conversation history using JSON structure.
     Returns the created task ID
     """
-    # Extract message content
-    text = message.get("text", "")
+    # Initialize TelegramUtils to access conversation history
+    telegram_utils = TelegramUtils()
+    last_messages = telegram_utils.get_last_few_messages()
+    if last_messages:
+        text = last_messages[-1].get("text", "")
+    else:
+        text = ""
 
     # Create high priority task for telegram messages
     task_data = {

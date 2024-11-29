@@ -12,14 +12,36 @@ import datetime
 import traceback
 
 def run_think():
-    thinking = think()  # takes
-    print("THOUGHTS : " + thinking)
-    decision = decide(thinking)
-    print("DECISIONS : " + str(decision))
-    evaluated_decision = evaluate_decision(thinking, decision)
-    print("EVALUATED DECISION : " + str(evaluated_decision))
-    take_action(evaluated_decision)
+    """Process the first task in the folder of tasks."""
+    log("Starting run_think")
+    tasks_list = load_tasks()
+    log(f"Loaded tasks: {tasks_list}")
+    if tasks_list:
+        first_task = tasks_list[0]
+        log(f"Processing first task: {first_task}")
+        process_task(first_task)
+    else:
+        log("No tasks available to process.")
 
+# Placeholder function to load tasks
+# This should be replaced with actual task loading logic
+
+def load_tasks():
+    """Load tasks from a predefined location."""
+    log("Loading tasks...")
+    # Example placeholder logic
+    tasks = [
+        {"id": "1", "title": "Sample Task", "description": "This is a sample task.", "priority": 1, "source": "manual"}
+    ]
+    log(f"Tasks loaded: {tasks}")
+    return tasks
+
+# Placeholder function to process a task
+# This should be replaced with actual task processing logic
+
+def process_task(task):
+    """Process a given task."""
+    log(f"Processing task: {task['title']}")
 
 def evaluate_decision(thoughts, decision):
     # combine thoughts and decision and ask llm to evaluate the decision json and output an improved one
@@ -173,7 +195,7 @@ If no clear task can be extracted, return null.""")
                 "message_count": len(message_history) if message_history else 0
             }
         }
-        memory.save_thought(json.dumps(thought_data), context=history)
+        memory.add_to_thought_history(json.dumps(thought_data))
         
         # If we were thinking about a specific task, update its results
         if current_task:
