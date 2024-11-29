@@ -1,9 +1,9 @@
 import json
 
 
-def log(message):
+def log(message, end="\n", flush=False):
     # print with white color
-    print("\033[0m" + str(message) + "\033[0m")
+    print("\033[0m" + str(message) + "\033[0m", end=end, flush=flush)
 
 
 def save_debug(data, response):

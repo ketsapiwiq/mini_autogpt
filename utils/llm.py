@@ -26,12 +26,13 @@ def llm_request(history):
     Processes and prints the response in real time.
     """
     load_dotenv()
-    model = os.getenv("MODEL", "llama3.1:8b-instruct-q8_0")
-    temperature = float(os.getenv("TEMPERATURE", 0.7))
-    max_tokens = int(os.getenv("MAX_TOKENS", 1024))
-    api_url = os.getenv("API_URL")
-    truncation_length = os.getenv("TRUNCATION_LENGTH")
-    max_new_tokens = os.getenv("MAX_NEW_TOKENS")
+    # Strip any comments and whitespace from environment variables
+    model = os.getenv("MODEL", "llama3.1:8b-instruct-q8_0").split('#')[0].strip()
+    temperature = float(os.getenv("TEMPERATURE", "0.7").split('#')[0].strip())
+    max_tokens = int(os.getenv("MAX_TOKENS", "1024").split('#')[0].strip())
+    api_url = os.getenv("API_URL", "http://localhost:11434/v1").split('#')[0].strip()
+    truncation_length = os.getenv("TRUNCATION_LENGTH", "").split('#')[0].strip()
+    max_new_tokens = os.getenv("MAX_NEW_TOKENS", "").split('#')[0].strip()
 
     try:
         # Initialize OpenAI-compatible client
