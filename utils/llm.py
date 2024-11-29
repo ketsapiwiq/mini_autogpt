@@ -99,4 +99,13 @@ def build_prompt(base_prompt):
     return prompt
 
 def send(history):
+    """
+    Legacy compatibility function - converts to new format
+    """
+    if isinstance(history, dict) and 'messages' in history:
+        # Convert old format to new
+        messages = history['messages']
+        if isinstance(messages, tuple):
+            messages = list(messages)
+        return llm_request(messages)
     return llm_request(history)

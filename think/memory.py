@@ -33,34 +33,15 @@ def summarize_text(text, max_new_tokens=100):
     """
     Summarize the given text using the given LLM model.
     """
-    # Define the prompt for the LLM model.
-
-    load_dotenv()
-    model = os.getenv("MODEL")
-
-    messages = (
-        {
-            "role": "system",
-            "content": prompt.summarize_conversation,
-        },
-        {"role": "user", "content": f"Please summarize the following text: {text}"},
-    )
-
-    data = {
-        "mode": "instruct",
-        "model": model,
-        "messages": messages,
-        "user_bio": "",
-        "max_new_tokens": max_new_tokens,
-    }
     log("Sending to LLM for summary...")
-    response = llm.send(data)
+    history = []
+    history.append({"role": "system", "content": prompt.summarize_conversation})
+    history.append({"role": "user", "content": f"Please summarize the following text: {text}"})
+    
+    response = llm.llm_request(history)
     log("LLM answered with summary!")
-    log(json.dumps(response.json()))
-    # Extract the summary from the response.
-    summary = response.json()["choices"][0]["message"]["content"]
-
-    return summary
+    
+    return response  # The response is already the text content
 
 
 def chunk_text(text, max_tokens=3000):
