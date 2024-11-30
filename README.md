@@ -12,6 +12,7 @@ This Repository is also a Preview of Sophie-AI, a fully autonomous AI that runs 
 - [What's Cooking? 🍳](#whats-cooking-)
 - [Setup](#setup)
 - [Usage](#usage)
+- [Program Architecture and Critical Path 🔄](#program-architecture-and-critical-path-)
 - [Experimental Notice](#experimental-notice)
 - [Contributing](#contributing)
 - [Mini-AutoGPT in Action](#mini-autogpt-in-action)
@@ -72,6 +73,43 @@ or
 python3.11 main.py
 ```
 
+## Program Architecture and Critical Path 🔄
+
+Mini-AutoGPT follows a think-decide-act cycle that forms its critical execution path:
+
+1. **Think Phase** (`think.py`):
+   - Program starts with the `run_think()` function
+   - Loads thought history and context
+   - Processes current tasks and user messages
+   - Generates thoughts using LLM
+
+2. **Decision Phase** (`action_decisions.py`):
+   - Takes generated thoughts as input
+   - Evaluates context and previous conversations if needed
+   - Makes a decision using LLM about what action to take
+   - Validates and formats the decision as JSON
+
+3. **Evaluation Phase** (`think.py`):
+   - Evaluates the decision by combining thoughts and chosen action
+   - Validates decision quality
+   - Can retry decisions if quality check fails
+   - Includes error handling with max retry limits
+
+4. **Action Phase** (`action_execute.py`):
+   - Executes the validated decision
+   - Can perform various actions like:
+     - Responding to users
+     - Running commands
+     - Managing tasks
+     - Searching information
+
+5. **Memory Management**:
+   - Maintains conversation history
+   - Tracks thought processes
+   - Stores task states and results
+
+The program uses local LLMs for all decision-making processes, making it fully autonomous while running entirely on your machine.
+
 ## Experimental Notice 🧪
 
 Mini-AutoGPT is still experimental. It might get a little too excited and repeat what you say or surprise you with unexpected wisdom. Handle it with care and affection!
@@ -106,7 +144,7 @@ Here's a snippet of what to expect when you fire up Mini-AutoGPT:
     ▓▒██░░   ░░░░░░▓▓▒░░░░▓▓▓░░░░▒▓▓░░░░░░    ░██▒░      
     █░░░░░░░░░░░░▒▓█░▒░░░░▒▓▒░░░░▒░█▓░░░░░░░░░░░░░█      
     █▓░░▓▓▒▒▒█░░░░░█░░░░░▒▓▓▓▒░░░░░█░░░░░█▒▒▒▒▓░░▒█      
-     ███░░▓▓█▒▓▒▒▒░░░░░▒▒▓▒█▓▓▒░░░░░░▒▒▓▓▒▓▓▓░░▓██       
+     ███░░▓▓█▒▓▒▒░░░░░▒▒▓▒█▓▓▒░░░░░░▒▒▓▓▒▓▓▓░░▓██       
      ░░░█████▓▒░▒▒░▒▒▒▒▒▒▒█░█▓▒▒▒▒▒▒▒▒▓▒░██████░░░       
       ░░░░░░░░██░░█▓░▒▒░█░░░░░█░█░░█▒░▒██░░░░░░░         
              ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░                             
@@ -122,7 +160,6 @@ Forgetting everything...
 My memory is empty now, I am ready to learn new things! 
 
 *** I am thinking... ***
-```
 
 Mini-AutoGPT is the small bot with a big dream: to make LLMs accessible on your local machine. Join us in nurturing this tiny digital marvel!
 

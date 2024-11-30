@@ -173,7 +173,7 @@ If no clear task can be extracted, return null.""")
                 "message_count": len(message_history) if message_history else 0
             }
         }
-        memory.save_thought(json.dumps(thought_data), context=history)
+        # memory.save_thought(json.dumps(thought_data), context=history)
         
         # If we were thinking about a specific task, update its results
         if current_task:

@@ -1,112 +1,92 @@
-import requests
-from utils.log import log
-import think.memory as memory
+import openai
 import os
 from dotenv import load_dotenv
+from utils.log import log, debug
 import json
+import traceback
 
 def one_shot_request(prompt, system_context):
     history = []
     history.append({"role": "system", "content": system_context})
     history.append({"role": "user", "content": prompt})
     response = llm_request(history)
-    if response.status_code == 200:
-        return response.json()["choices"][0]["message"]["content"]
+    if response is not None:
+        return response
     else:
         log("Error in one_shot_request")
         return None
 
-import openai
-import os
-from dotenv import load_dotenv
-from utils.log import log
 def llm_request(history):
     """
     Sends a request to the OpenAI-compatible API using the ChatCompletion endpoint with streaming.
     Processes and prints the response in real time.
     """
+    debug("Starting LLM request")
     load_dotenv()
     # Strip any comments and whitespace from environment variables
     model = os.getenv("MODEL", "llama3.1:8b-instruct-q8_0").split('#')[0].strip()
     temperature = float(os.getenv("TEMPERATURE", "0.7").split('#')[0].strip())
     max_tokens = int(os.getenv("MAX_TOKENS", "1024").split('#')[0].strip())
     api_url = os.getenv("API_URL", "http://localhost:11434/v1").split('#')[0].strip()
-    truncation_length = os.getenv("TRUNCATION_LENGTH", "").split('#')[0].strip()
-    max_new_tokens = os.getenv("MAX_NEW_TOKENS", "").split('#')[0].strip()
+
+    debug(f"Using model: {model}")
+    debug(f"API URL: {api_url}")
+    debug(f"Temperature: {temperature}")
+    debug(f"Max tokens: {max_tokens}")
 
     try:
+        debug("Initializing OpenAI client")
         # Initialize OpenAI-compatible client
         client = openai.OpenAI(
             api_key=os.getenv("OPENAI_API_KEY") or "test",
             base_url=api_url,
         )
 
-        log(f"Attempting request with MODEL={model} to URL={api_url}")  # Added logging
+        log(f"Attempting request with MODEL={model} to URL={api_url}")
+        log("Request history: " + str(history))
 
+        debug("Sending request to API")
         # Send the request with streaming enabled
         response = client.chat.completions.create(
             model=model,
             messages=history,
             temperature=temperature,
             max_tokens=max_tokens,
-            stream=True,  # Enable streaming
+            stream=True
         )
+        debug("Got initial streaming response")
 
-        # Process and print streamed chunks
-        # log("Streaming response:")
-        result = ""
+        # Process the streaming response
+        collected_messages = []
+        debug("Starting to process stream")
         for chunk in response:
-            message_content = chunk.choices[0].delta.content or ""
-            result += message_content
-            print(message_content, end="", flush=True)  # Real-time printing
-    
-        return result
-    except Exception as e:
-        log(f"Exception during OpenAI request: {e}")
-        raise
+            debug(f"Received chunk: {chunk}")
+            if chunk.choices[0].delta.content is not None:
+                content = chunk.choices[0].delta.content
+                collected_messages.append(content)
+                print(content, end='', flush=True)  # Print in real-time
+        
+        full_response = ''.join(collected_messages)
+        debug(f"Completed response length: {len(full_response)}")
+        log(f"Completed response: {full_response[:100]}...")  # Log first 100 chars
+        return full_response
 
+    except Exception as e:
+        debug(f"Error in llm_request: {str(e)}")
+        debug(f"Full traceback: {traceback.format_exc()}")
+        log(f"Error in llm_request: {str(e)}")
+        log(f"Full traceback: {traceback.format_exc()}")
+        return None
 
 def build_context(history, conversation_history, message_history):
-    context = ""
+    """Build context for the LLM request from various history sources."""
     if conversation_history:
-        context += "Context:\n"
-        for convo in conversation_history:
-            if convo:
-                context += str(convo)
+        history.extend(conversation_history)
     if message_history:
-        context += "\nMessages:\n"
-        for message in message_history:
-            if message:
-                context += str(message)
-    memories = memory.load_memories()
+        for msg in message_history:
+            history.append({"role": "user", "content": msg})
+    memories = think.memory.load_memories()
     if memories:
-        context += "\nMemories:\n"
         for mem in memories:
-            context += mem
-    if context:
-        history.append(
-            {
-                "role": "user",
-                "content": str(context),
-            }
-        )
+            history.append({"role": "user", "content": mem})
     return history
-
-
-def build_prompt(base_prompt):
-    prompt = []
-    prompt.append({"role": "system", "content": base_prompt})
-
-    return prompt
-
-def send(history):
-    """
-    Legacy compatibility function - converts to new format
-    """
-    if isinstance(history, dict) and 'messages' in history:
-        # Convert old format to new
-        messages = history['messages']
-        if isinstance(messages, tuple):
-            messages = list(messages)
-        return llm_request(messages)
-    return llm_request(history)

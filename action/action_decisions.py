@@ -12,10 +12,6 @@ from utils.log import save_debug
 from utils.error_handling import ErrorCounter
 
 
-def extract_decision(thinking):
-    return decide(thinking)
-
-
 def decide(thoughts):
     log("deciding what to do...")
     history = []
