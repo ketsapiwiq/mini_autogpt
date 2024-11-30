@@ -50,8 +50,7 @@ class Command(ABC):
         """Get the prompt template for this command.
         
         Returns:
-            BasicPromptTemplate instance if command has a prompt,
-            None otherwise
+            Prompt template for this command, or None if not needed
         """
         return None
 
@@ -66,3 +65,45 @@ class Command(ABC):
             None otherwise
         """
         return CommandPrompt.get_prompt(self.__class__.__name__, args)
+
+    def get_agent_requirements(self) -> Dict[str, Any]:
+        """Get the agent requirements for this command.
+        This is a placeholder for future agent integration.
+        
+        Returns:
+            Dictionary containing:
+                - capabilities: List of required agent capabilities
+                - permissions: List of required permissions
+                - resources: List of required resources
+                - metadata: Additional metadata for agent handling
+        """
+        return {
+            "capabilities": [],
+            "permissions": [],
+            "resources": [],
+            "metadata": {}
+        }
+    
+    def prepare_for_agent(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Prepare command arguments for agent execution.
+        This is a placeholder for future agent integration.
+        
+        Args:
+            args: Original command arguments
+            
+        Returns:
+            Modified arguments suitable for agent execution
+        """
+        return args
+    
+    def handle_agent_response(self, response: Dict[str, Any]) -> Dict[str, Any]:
+        """Process the response from an agent execution.
+        This is a placeholder for future agent integration.
+        
+        Args:
+            response: Raw response from agent execution
+            
+        Returns:
+            Processed response in standard command format
+        """
+        return response
