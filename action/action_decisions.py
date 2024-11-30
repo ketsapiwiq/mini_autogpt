@@ -11,6 +11,7 @@ import think.memory as memory
 from utils.log import save_debug
 from utils.error_handling import ErrorCounter
 from action.commands.registry import CommandRegistry
+from utils.simple_telegram import TelegramUtils
 
 
 def decide(thoughts):
@@ -65,6 +66,15 @@ def decide(thoughts):
         decision = response
     
     debug(f"Decision Made:\n{json.dumps(decision, indent=2)}")
+    
+    # Send Telegram notification about the decided command
+    if isinstance(decision, dict) and "command" in decision:
+        command_info = decision["command"]
+        if isinstance(command_info, dict) and "name" in command_info:
+            command_name = command_info["name"]
+            command_args = command_info.get("args", {})
+            telegram = TelegramUtils.get_instance()
+            telegram.send_message(f"🤖 Decided to execute command: {command_name}\nArguments: {json.dumps(command_args, indent=2)}")
     
     return response
 

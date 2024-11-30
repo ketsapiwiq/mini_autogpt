@@ -450,8 +450,8 @@ Consider:
         except:
             return "unknown"
 
-class GitCommitCommand(Command):
-    """Commit current changes."""
+class GitCommitCurrentCommand(Command):
+    """Commit current changes after staging them."""
     
     def validate_args(self, args: Dict[str, Any]) -> bool:
         return isinstance(args.get("message"), str)
@@ -507,11 +507,20 @@ Consider:
                 "untracked_files": self._get_untracked_files()
             }
             
-            result = subprocess.run(["git", "commit", "-m", message], capture_output=True, text=True)
+            # First stage all changes
+            stage_result = subprocess.run(["git", "add", "-A"], capture_output=True, text=True)
+            if stage_result.returncode != 0:
+                return {
+                    "status": "error",
+                    "error": f"Failed to stage changes: {stage_result.stderr}"
+                }
+            
+            # Then commit
+            commit_result = subprocess.run(["git", "commit", "-m", message], capture_output=True, text=True)
             return {
-                "status": "success" if result.returncode == 0 else "error",
-                "output": result.stdout,
-                "error": result.stderr,
+                "status": "success" if commit_result.returncode == 0 else "error",
+                "output": commit_result.stdout,
+                "error": commit_result.stderr,
                 "prompt": self.get_formatted_prompt(repo_info)
             }
         except Exception as e:
@@ -737,5 +746,5 @@ CommandRegistry.register("lookup_files", LookupFilesCommand)
 CommandRegistry.register("lookup_term", LookupTermCommand)
 CommandRegistry.register("exec_docker", ExecDockerCommand)
 CommandRegistry.register("git_stash", GitStashCommand)
-CommandRegistry.register("git_commit_current", GitCommitCommand)
+CommandRegistry.register("git_commit_current", GitCommitCurrentCommand)
 CommandRegistry.register("git_switch_branch", GitSwitchBranchCommand)

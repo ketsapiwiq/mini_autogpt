@@ -12,7 +12,6 @@ def register_commands():
     CommandRegistry.register("lookup_term", file_operations.LookupTermCommand)
     CommandRegistry.register("exec_docker_command", file_operations.ExecDockerCommand)
     CommandRegistry.register("git_stash", file_operations.GitStashCommand)
-    CommandRegistry.register("git_commit_current", file_operations.GitCommitCurrentCommand)
     CommandRegistry.register("git_switch_branch", file_operations.GitSwitchBranchCommand)
     
     # Register user interaction commands

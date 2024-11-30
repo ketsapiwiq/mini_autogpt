@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+from dotenv import load_dotenv
 import random
 import traceback
 from telegram import Bot, Update
@@ -9,6 +10,8 @@ from telegram.ext import CallbackContext
 import think.memory as memory
 from utils.log import log
 
+# Load environment variables from .env file
+load_dotenv()
 
 response_queue = ""
 

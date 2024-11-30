@@ -2,10 +2,14 @@
 from typing import Dict, Any, Optional
 from . import Command
 from .prompt_builder import BasicPromptTemplate
-from utils.simple_telegram import SimpleTelegram
+from utils.simple_telegram import TelegramUtils
 from utils.log import log
+import os
 
-telegram = SimpleTelegram()
+telegram = TelegramUtils.get_instance(
+    api_key=os.getenv('TELEGRAM_API_KEY'),
+    chat_id=os.getenv('TELEGRAM_CHAT_ID')
+)
 
 class SendMessageCommand(Command):
     """Command to send a message to the user via Telegram."""
