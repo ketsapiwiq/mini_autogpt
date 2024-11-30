@@ -27,6 +27,14 @@ def run_async(coro):
 
 
 class TelegramUtils:
+    _instance = None
+    
+    @classmethod
+    def get_instance(cls, api_key: str = None, chat_id: str = None):
+        if cls._instance is None:
+            cls._instance = cls(api_key, chat_id)
+        return cls._instance
+
     def __init__(self, api_key: str = None, chat_id: str = None):
         if not api_key:
             log(

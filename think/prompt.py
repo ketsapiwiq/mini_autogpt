@@ -6,6 +6,8 @@ json_schema = """RESPOND WITH ONLY VALID JSON CONFORMING TO THE FOLLOWING SCHEMA
     }
 }"""
 
+from action.commands.registry import CommandRegistry
+
 commands = [
     {
         "name": "ask_user",
@@ -19,21 +21,15 @@ commands = [
         "args": None,
         "enabled": True,
     },
-    {
-        "name": "web_search",
-        "description": "search the web for keyword",
-        "args": {"query": "<query to research>"},
-        "enabled": True,
-    },
 ]
 
 
 def get_commands():
     output = ""
+    # First add our static commands
     for command in commands:
         if command["enabled"] != True:
             continue
-        # enabled_status = "Enabled" if command["enabled"] else "Disabled"
         output += f"Command: {command['name']}\n"
         output += f"Description: {command['description']}\n"
         if command["args"] is not None:
@@ -42,8 +38,21 @@ def get_commands():
                 output += f"  {arg}: {description}\n"
         else:
             output += "Arguments: None\n"
-        output += "\n"  # For spacing between commands
-    return output.strip()  # Remove the trailing newline for cleaner output
+        output += "\n"
+    
+    # Then add all registered commands
+    for command in CommandRegistry.get_available_commands():
+        output += f"Command: {command['name']}\n"
+        output += f"Description: {command['description']}\n"
+        if command["args"] is not None:
+            output += "Arguments:\n"
+            for arg, description in command["args"].items():
+                output += f"  {arg}: {description}\n"
+        else:
+            output += "Arguments: None\n"
+        output += "\n"
+    
+    return output.strip()
 
 
 summarize_conversation = """Create a concise summary of the conversation, focusing on key information and latest developments. Use first person past tense. Older information should be condensed or omitted."""

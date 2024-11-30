@@ -5,15 +5,21 @@
 import json
 import traceback
 import utils.llm as llm
-from utils.log import log
+from utils.log import log, debug
 import think.prompt as prompt
 import think.memory as memory
 from utils.log import save_debug
 from utils.error_handling import ErrorCounter
+from action.commands.registry import CommandRegistry
 
 
 def decide(thoughts):
     log("deciding what to do...")
+    
+    # Debug log available actions
+    available_commands = prompt.get_commands()
+    debug("Available Actions:\n" + available_commands)
+    
     history = []
     history.append({"role": "system", "content": prompt.action_prompt})
 
@@ -48,7 +54,18 @@ def decide(thoughts):
         save_debug(history, response=response)
         log("Retry Decision as faulty JSON!")
         return decide(thoughts)
-
+    
+    # Debug log the decision made
+    if isinstance(response, str):
+        try:
+            decision = json.loads(response)
+        except json.JSONDecodeError:
+            decision = response
+    else:
+        decision = response
+    
+    debug(f"Decision Made:\n{json.dumps(decision, indent=2)}")
+    
     return response
 
 

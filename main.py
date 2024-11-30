@@ -4,11 +4,24 @@ from pathlib import Path
 import traceback
 sys.path.append(str(Path(__file__).parent))
 from think.think import process_thoughts
-from utils.log import log
+from utils.log import log, debug
 import time
+from action.commands.setup import register_commands
+from action.commands.registry import CommandRegistry
 
 def main():
     """Run the main AI loop."""
+    log("*** Starting up... ***")
+    
+    # Register all available commands
+    register_commands()
+    
+    # Log available commands for debugging
+    commands = CommandRegistry.get_available_commands()
+    debug("Registered Commands:")
+    for cmd in commands:
+        debug(f"- {cmd['name']}: {cmd['description']}")
+    
     log("*** I am thinking... ***")
     while True:
         try:
