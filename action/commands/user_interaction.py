@@ -77,7 +77,36 @@ class AskUserCommand(Command):
             
         return {"status": "success", "response": response}
 
+class TellUserCommand(Command):
+    """Command to tell something to the user without interaction.
+    
+    This command is used to output information to the user without expecting a response.
+    It's a non-interactive way to communicate information.
+    
+    Arguments:
+        message (str): The message to tell the user. Should be clear and informative.
+    
+    Returns:
+        Dict containing:
+        - status: "success"
+        - message: Confirmation that the message was delivered
+    """
+    
+    def validate_args(self, args: Dict[str, Any]) -> bool:
+        return isinstance(args.get("message"), str)
+    
+    def get_args(self) -> Dict[str, str]:
+        return {
+            "message": "The message to tell the user. Should be clear and informative."
+        }
+    
+    def execute(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        message = args["message"]
+        log(f"[TELL USER] {message}")
+        return {"status": "success", "message": "Information delivered to user"}
+
 # Register commands
 from .registry import CommandRegistry
 CommandRegistry.register("send_message", SendMessageCommand)
 CommandRegistry.register("ask_user", AskUserCommand)
+CommandRegistry.register("tell_user", TellUserCommand)

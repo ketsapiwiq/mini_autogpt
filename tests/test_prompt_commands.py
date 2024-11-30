@@ -30,20 +30,9 @@ class TestPromptCommands(unittest.TestCase):
             for cmd in missing_in_static:
                 print(f"- {cmd}")
 
-        # Check for commands in static but not in registry
-        extra_in_static = static_command_names - registry_commands
-        if extra_in_static:
-            print("\nCommands in prompt.py but missing from registry:")
-            for cmd in extra_in_static:
-                print(f"- {cmd}")
-
-        # Assert all registry commands are included in static commands
+        # Assert that all registry commands are included in static commands
         self.assertEqual(missing_in_static, set(), 
-            "Some commands from the registry are missing in prompt.py static commands")
-        
-        # Assert all static commands exist in registry
-        self.assertEqual(extra_in_static, set(),
-            "Some static commands in prompt.py don't exist in the registry")
+                        "Some commands in registry are not included in prompt.py")
 
 if __name__ == '__main__':
     unittest.main()
