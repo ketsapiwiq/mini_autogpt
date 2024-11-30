@@ -1,13 +1,15 @@
 """Main entry point for mini_autogpt."""
 import sys
 from pathlib import Path
+import traceback
 sys.path.append(str(Path(__file__).parent))
 from think.think import process_thoughts
+from utils.log import log
 import time
 
 def main():
     """Run the main AI loop."""
-    write_start_message()
+    log("*** I am thinking... ***")
     while True:
         try:
             process_thoughts()
@@ -16,7 +18,8 @@ def main():
             print("Shutting down...")
             break
         except Exception as e:
-            print(f"Error in main loop: {e}")
+            print(f"Error in main loop: {str(e)}")
+            print(f"Full traceback: {traceback.format_exc()}")
             time.sleep(5)
 
 def write_start_message():
@@ -41,7 +44,7 @@ def write_start_message():
     ▓▒██░░   ░░░░░░▓▓▒░░░░▓▓▓░░░░▒▓▓░░░░░░    ░██▒░      
     █░░░░░░░░░░░░▒▓█░▒░░░░▒▓▒░░░░▒░█▓░░░░░░░░░░░░░█      
     █▓░░▓▓▒▒▒█░░░░░█░░░░░▒▓▓▓▒░░░░░░█░░░░░█▒▒▒▒▓░░▒█      
-     ███░░▓▓█▒▓▒▒▒░░░░░▒▒▓▒█▓▓▒░░░░░░▒▒▓▓▒▓▓▓░░▓██       
+     ███░░▓▓█▒▓▒▒░░░░░▒▒▓▒█▓▓▒░░░░░░▒▒▓▓▒▓▓▓░░▓██       
      ░░░█████▓▒░▒▒░▒▒▒▒▒▒▒█░█▓▒▒▒▒▒▒▒▒▓▒░██████░░░       
       ░░░░░░░░██░░█▓░▒▒░█░░░░░█░█░░█▒░▒█"""
     print(ascii_art)
