@@ -4,55 +4,34 @@ import uuid
 from datetime import datetime
 from typing import Dict, List, Optional
 from utils.log import log
-
-TASKS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "tasks")
-ACTIVE_TASKS_DIR = os.path.join(TASKS_DIR, "active")
-COMPLETED_TASKS_DIR = os.path.join(TASKS_DIR, "completed")
+from action.tasks import (
+    TASKS_DIR,
+    ACTIVE_TASKS_DIR,
+    COMPLETED_TASKS_DIR,
+    ensure_task_directories,
+    create_task as create_base_task,
+    get_first_task
+)
 
 # Global variable to store the currently active task ID
 _active_task_id = None
 
-def ensure_task_directories():
-    """Ensure all required task directories exist"""
-    log("Creating task directories...")
-    for dir_path in [TASKS_DIR, ACTIVE_TASKS_DIR, COMPLETED_TASKS_DIR]:
-        log(f"Ensuring directory exists: {dir_path}")
-        os.makedirs(dir_path, exist_ok=True)
-
-def create_task(title: str, description: str, priority: int = 3, 
-                source: str = "system", parent_task: Optional[str] = None) -> str:
-    """Create a new task and return its ID"""
-    log(f"Creating new task: {title}")
-    log(f"Task details - Priority: {priority}, Source: {source}, Parent: {parent_task}")
+def create_task_from_json(task_data: Dict) -> str:
+    """Create a new task from JSON data"""
+    log(f"Creating task from JSON: {task_data}")
     
-    task_id = str(uuid.uuid4())
-    task_dir = os.path.join(ACTIVE_TASKS_DIR, task_id)
-    log(f"Creating task directory: {task_dir}")
+    # Extract required fields with defaults
+    title = task_data.get("title", task_data.get("task", "Untitled Task"))
+    description = task_data.get("description", "No description provided")
+    priority = task_data.get("priority", 3)
+    status = task_data.get("status", "pending")
     
-    os.makedirs(task_dir)
-    os.makedirs(os.path.join(task_dir, "thoughts"))
-    os.makedirs(os.path.join(task_dir, "subtasks"))
-    
-    task_data = {
-        "id": task_id,
-        "priority": priority,
-        "created_at": datetime.utcnow().isoformat(),
-        "source": source,
-        "title": title,
-        "description": description,
-        "status": "pending",
-        "parent_task": parent_task,
-        "dependencies": [],
-        "results": {}
-    }
-    
-    task_file = os.path.join(task_dir, "task.json")
-    log(f"Writing task data to: {task_file}")
-    with open(task_file, "w") as f:
-        json.dump(task_data, f, indent=2)
-    
-    log(f"Task created successfully with ID: {task_id}")
-    return task_id
+    return create_base_task(
+        task_name=title,
+        description=description,
+        priority=priority,
+        status=status
+    )
 
 def get_task(task_id: str) -> Dict:
     """Get task data by ID"""
@@ -97,14 +76,39 @@ def add_thought(task_id: str, thought: str):
     with open(thought_file, "w") as f:
         f.write(thought)
 
+def get_active_task() -> Optional[Dict]:
+    """Get the currently active task"""
+    global _active_task_id
+    if _active_task_id:
+        try:
+            return get_task(_active_task_id)
+        except:
+            _active_task_id = None
+    return None
+
+def create_subtask(parent_id: str, title: str, description: str, priority: Optional[int] = None) -> str:
+    """Create a subtask under a parent task"""
+    parent_task = get_task(parent_id)
+    if not priority:
+        priority = parent_task.get("priority", 3)
+    
+    subtask_id = create_base_task(
+        task_name=title,
+        description=description,
+        priority=priority
+    )
+    
+    # Add subtask reference to parent
+    subtasks_dir = os.path.join(ACTIVE_TASKS_DIR, parent_id, "subtasks")
+    with open(os.path.join(subtasks_dir, f"{subtask_id}.json"), "w") as f:
+        json.dump({"id": subtask_id, "title": title}, f)
+    
+    return subtask_id
+
 def get_highest_priority_task() -> Optional[Dict]:
     """Get the highest priority pending task"""
     global _active_task_id
     log("Retrieving highest priority pending task")
-    # TODO: Add support for custom folder paths instead of fixed ACTIVE_TASKS_DIR
-    # TODO: Add validation for priority field type (int or float)
-    # TODO: Add error logging for JSON parsing errors
-    # TODO: Add sorting by creation date as secondary criteria
     
     highest_priority = float('inf')
     selected_task = None
@@ -128,30 +132,3 @@ def get_highest_priority_task() -> Optional[Dict]:
         _active_task_id = None  # Clear active task if no task found
         
     return selected_task
-
-def get_active_task() -> Optional[Dict]:
-    """Get the currently active task"""
-    global _active_task_id
-    if _active_task_id:
-        try:
-            return get_task(_active_task_id)
-        except (FileNotFoundError, json.JSONDecodeError):
-            _active_task_id = None
-    return None
-
-def create_subtask(parent_id: str, title: str, description: str, 
-                   priority: Optional[int] = None) -> str:
-    """Create a subtask under a parent task"""
-    log(f"Creating subtask under parent ID: {parent_id}")
-    parent_task = get_task(parent_id)
-    if priority is None:
-        priority = parent_task["priority"]
-    
-    task_id = create_task(
-        title=title,
-        description=description,
-        priority=priority,
-        parent_task=parent_id
-    )
-    
-    return task_id

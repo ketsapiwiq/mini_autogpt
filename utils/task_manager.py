@@ -1,7 +1,8 @@
 import os
 import json
 from datetime import datetime
-from utils.task_tree import create_task, get_highest_priority_task, get_active_task
+from utils.task_tree import get_highest_priority_task, get_active_task
+from action.tasks import create_task
 from utils.log import log
 
 def get_first_task(folder_path="tasks"):

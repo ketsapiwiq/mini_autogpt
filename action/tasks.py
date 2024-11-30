@@ -1,6 +1,17 @@
 import os
 import json
 from datetime import datetime
+from utils.log import log
+
+# Use absolute path for tasks directory
+TASKS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "tasks")
+ACTIVE_TASKS_DIR = os.path.join(TASKS_DIR, "active")
+COMPLETED_TASKS_DIR = os.path.join(TASKS_DIR, "completed")
+
+def ensure_task_directories():
+    """Ensure all required task directories exist"""
+    for dir_path in [TASKS_DIR, ACTIVE_TASKS_DIR, COMPLETED_TASKS_DIR]:
+        os.makedirs(dir_path, exist_ok=True)
 
 def get_first_task():
     """
@@ -12,13 +23,10 @@ def get_first_task():
                       or None if no valid tasks are found.
     """
     tasks = []
-    folder_path = "tasks"
-    
-    # Ensure tasks directory exists
-    os.makedirs(folder_path, exist_ok=True)
+    ensure_task_directories()
     
     # Create state file if it doesn't exist
-    state_file = os.path.join(folder_path, "task_state.json")
+    state_file = os.path.join(TASKS_DIR, "task_state.json")
     if not os.path.exists(state_file):
         with open(state_file, "w") as f:
             json.dump({"last_task": None, "in_progress": []}, f)
@@ -30,13 +38,13 @@ def get_first_task():
     except:
         state = {"last_task": None, "in_progress": []}
     
-    # Iterate over all files in the folder
-    for filename in os.listdir(folder_path):
-        if filename.endswith('.json') and filename != "task_state.json":
-            file_path = os.path.join(folder_path, filename)
+    # Iterate over all files in the active tasks folder
+    for task_id in os.listdir(ACTIVE_TASKS_DIR):
+        task_file = os.path.join(ACTIVE_TASKS_DIR, task_id, "task.json")
+        if os.path.exists(task_file):
             try:
                 # Read and parse the JSON file
-                with open(file_path, 'r') as file:
+                with open(task_file, 'r') as file:
                     task = json.load(file)
                     
                 # Skip tasks that are already in progress
@@ -48,9 +56,9 @@ def get_first_task():
                     if task["status"] != "completed":
                         tasks.append(task)
             except (json.JSONDecodeError, OSError) as e:
-                print(f"Error reading {file_path}: {e}")
+                log(f"Error reading {task_file}: {e}")
 
-    # Sort tasks by priority
+    # Sort tasks by priority and creation time
     tasks.sort(key=lambda x: (x.get("priority", 999), x.get("created_at", "")))
     
     # Get next task
@@ -67,36 +75,43 @@ def get_first_task():
             
     return next_task
 
-def create_task(task_name, priority, description, status="pending"):
+def create_task(task_name: str, description: str, priority: int = 3, status: str = "pending"):
     """
     Creates a new task file in the tasks directory.
     
     Args:
         task_name (str): Name/title of the task
-        priority (int): Priority level (1-5, lower is higher priority)
         description (str): Detailed description of the task
+        priority (int): Priority level (1-5, lower is higher priority)
         status (str): Current status of task (default: pending)
         
     Returns:
-        str: Path to created task file
+        str: ID of the created task
     """
-    folder_path = "tasks"
-    os.makedirs(folder_path, exist_ok=True)
+    ensure_task_directories()
+    
+    task_id = str(int(datetime.utcnow().timestamp()))
+    task_dir = os.path.join(ACTIVE_TASKS_DIR, task_id)
+    os.makedirs(task_dir)
+    os.makedirs(os.path.join(task_dir, "thoughts"))
+    os.makedirs(os.path.join(task_dir, "subtasks"))
     
     task_data = {
-        "id": int(datetime.utcnow().timestamp()),
+        "id": task_id,
         "task": task_name,
         "priority": priority,
         "description": description,
         "status": status,
-        "created_at": datetime.utcnow().isoformat()
+        "created_at": datetime.utcnow().isoformat(),
+        "source": "user_message",
+        "dependencies": [],
+        "results": {}
     }
     
-    # Create unique filename using timestamp
-    filename = f"{task_data['id']}_{task_name.lower().replace(' ', '_')}.json"
-    file_path = os.path.join(folder_path, filename)
+    task_file = os.path.join(task_dir, "task.json")
+    log(f"Creating task: {task_name} with priority {priority} in {task_file}")
     
-    with open(file_path, 'w') as f:
+    with open(task_file, 'w') as f:
         json.dump(task_data, f, indent=4)
     
-    return file_path
+    return task_id

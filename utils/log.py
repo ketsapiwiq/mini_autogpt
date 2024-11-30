@@ -19,11 +19,13 @@ def debug(message):
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
         print(f"[DEBUG {timestamp}] {message}", flush=True)
 
-def save_debug(message, filename="debug.log"):
-    """Save a debug message to a file."""
+def save_debug(message, filename="debug.log", response=None):
+    """Save a debug message to a file. Optionally include a response."""
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
     with open(filename, "a") as f:
         f.write(f"[{timestamp}] {message}\n")
+        if response:
+            f.write(f"Response: {response}\n")
 
 def save_debug_data(data, response):
     """Save the debug to a file."""

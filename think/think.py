@@ -1,7 +1,7 @@
 import json
 import think.memory as memory
 import think.prompt as prompt
-import action.tasks as tasks
+from utils.task_tree import create_task_from_json
 import utils.llm as llm
 from action.action_decisions import decide, validate_json, extract_json_from_response
 from action.action_execute import take_action
@@ -128,11 +128,19 @@ If no clear task can be extracted, return null.""")
                 task_response = llm.llm_request(task_history)
                 task_data = json.loads(task_response) if validate_json(task_response) else None
                 if task_data:
-                    tasks.create_task(task_data["task"], task_data["priority"], 
-                                    task_data["description"], task_data["status"])
+                    # Create task with proper parameter names
+                    create_task_from_json(task_data)
+                    log(f"Successfully created task: {task_data['task']}")
+            except json.JSONDecodeError as e:
+                log(f"Error parsing task JSON response: {e}")
+                log(f"Raw response: {task_response}")
+            except KeyError as e:
+                log(f"Missing required task field: {e}")
+                log(f"Task data: {task_data}")
             except Exception as e:
-                log(f"Error creating task from message: {e}")
-
+                log(f"Unexpected error creating task: {e}")
+                log(traceback.format_exc())
+    
     # Build context with improved history handling
     history = llm.build_context(
         history=history,
