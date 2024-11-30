@@ -54,18 +54,6 @@ class Command(ABC):
         """
         return None
 
-    def get_formatted_prompt(self, args: Dict[str, Any]) -> Optional[str]:
-        """Get the formatted prompt for this command.
-        
-        Args:
-            args: Command arguments
-            
-        Returns:
-            Formatted prompt string if template exists,
-            None otherwise
-        """
-        return CommandPrompt.get_prompt(self.__class__.__name__, args)
-
     def get_agent_requirements(self) -> Dict[str, Any]:
         """Get the agent requirements for this command.
         This is a placeholder for future agent integration.

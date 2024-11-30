@@ -2,8 +2,7 @@
 
 list: ## List all enabled bot commands
 	@echo "Available enabled bot commands:"
-	@python -c "from action.commands.registry import CommandRegistry; \
-		print('\n'.join([f'{cmd[\"name\"]}: {cmd[\"description\"]}' for cmd in CommandRegistry.get_available_commands()]))"
+	@python -c "from action.commands.setup import register_commands; from action.commands.registry import CommandRegistry; register_commands(); print('\n'.join([f'{cmd[\"name\"]}: {cmd[\"description\"]}' for cmd in CommandRegistry.get_available_commands()]))"
 
 show-prompt: ## Show prompt for a specific command (usage: make show-prompt cmd=<command_name>)
 	@python -c "from action.commands.registry import CommandRegistry; \
@@ -13,8 +12,7 @@ show-prompt: ## Show prompt for a specific command (usage: make show-prompt cmd=
 		print(f'Prompt for command \"{cmd}\":\n{prompt}' if prompt else 'Command not found or no prompt available')"
 
 show-decision-prompt: ## Show the decision-making prompt used by the system
-	@python -c "import think.prompt as prompt; \
-		print('Decision-making prompt:\n' + prompt.action_prompt)"
+	@python -c "from action.commands.setup import register_commands; import think.prompt as prompt; register_commands(); print(prompt.get_action_prompt())"
 
 install: ## Install project dependencies
 	pip install -r requirements.txt

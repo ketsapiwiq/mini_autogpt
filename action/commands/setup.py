@@ -1,5 +1,5 @@
 """Command setup and registration."""
-from . import user_interaction, web_search, file_operations, prompt_commands
+from . import user_interaction, web_search, file_operations
 from .registry import CommandRegistry
 
 def register_commands():
@@ -21,6 +21,3 @@ def register_commands():
     # Register web search commands
     CommandRegistry.register("web_search", web_search.WebSearchCommand)
     
-    # Register prompt commands
-    CommandRegistry.register("get_prompt", prompt_commands.GetPromptCommand)
-    CommandRegistry.register("set_prompt", prompt_commands.SetPromptCommand)

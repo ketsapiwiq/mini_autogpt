@@ -2,7 +2,6 @@
 from typing import Dict, Type, Optional, List, Any
 from . import Command
 from utils.log import log
-import think.prompt as prompt
 
 class CommandRegistry:
     """Registry for all available commands."""

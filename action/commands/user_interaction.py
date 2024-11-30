@@ -141,6 +141,25 @@ Consider:
 class ExtractTasksCommand(Command):
     """Extract possible tasks from conversation history."""
     
+    def validate_args(self, args: Dict[str, Any]) -> bool:
+        """Validate command arguments.
+        
+        Args:
+            args: Dictionary of command arguments
+            
+        Returns:
+            True since this command takes no arguments
+        """
+        return True
+
+    def get_args(self) -> Dict[str, Dict[str, Any]]:
+        """Get command argument descriptions.
+        
+        Returns:
+            Empty dictionary since this command takes no arguments
+        """
+        return {}
+
     def execute(self, args: Dict[str, Any]) -> Dict[str, Any]:
         from think.memory import load_response_history
         import utils.llm as llm
@@ -192,14 +211,12 @@ If no clear tasks can be extracted, return {"tasks": []}.""")
                 "error": str(e)
             }
     
-    def get_args(self) -> Dict[str, str]:
-        return {}
-
 # Register commands
 from .registry import CommandRegistry
 CommandRegistry.register("send_message", SendMessageCommand)
 # ask_user intentionally disabled
+# CommandRegistry.register("ask_user", AskUserCommand)
 CommandRegistry.register("tell_user", TellUserCommand)
 CommandRegistry.register("extract_tasks", ExtractTasksCommand)
 CommandRegistry.register("show_conv_history", ExtractTasksCommand)  # Alias for conversation history
-CommandRegistry.register("agent_execute", AgentCommandExecutor)
+# CommandRegistry.register("agent_execute", AgentCommandExecutor)

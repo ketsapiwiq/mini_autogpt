@@ -10,19 +10,20 @@ import think.prompt as prompt
 import think.memory as memory
 from utils.log import save_debug
 from utils.error_handling import ErrorCounter
-from action.commands.registry import CommandRegistry
 from utils.simple_telegram import TelegramUtils
 
 
 def decide(thoughts):
     log("deciding what to do...")
     
+    from action.commands.registry import CommandRegistry
+    
     # Debug log available actions
     available_commands = prompt.get_commands()
     debug("Available Actions:\n" + available_commands)
     
     history = []
-    history.append({"role": "system", "content": prompt.action_prompt})
+    history.append({"role": "system", "content": prompt.get_action_prompt()})
 
     # Only load conversation history if thoughts indicate a need for context
     if "previous" in thoughts.lower() or "context" in thoughts.lower():

@@ -23,7 +23,7 @@ def process_thoughts():
 
 def analyze_decision(thoughts, decision):
     # combine thoughts and decision and ask llm to evaluate the decision json and output an improved one
-    history = llm.build_prompt(prompt.evaluation_prompt)
+    history = llm.build_prompt(prompt.get_evaluation_prompt())
     
     # If decision is to ask user, include conversation history for context
     try:
@@ -90,7 +90,7 @@ def generate_thoughts():
     # Get the highest priority task first
     current_task = get_first_task()
     
-    history = llm.build_prompt(prompt.thought_prompt)
+    history = llm.build_prompt(prompt.get_thought_prompt())
     thought_history = memory.load_thought_history()
     
     # Process thought history more carefully

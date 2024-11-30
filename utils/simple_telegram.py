@@ -7,7 +7,6 @@ import traceback
 from telegram import Bot, Update
 from telegram.error import TimedOut
 from telegram.ext import CallbackContext
-import think.memory as memory
 from utils.log import log
 
 # Load environment variables from .env file
@@ -92,13 +91,11 @@ class TelegramUtils:
             if len(self.conversation_history) == 0:
                 return "There is no previous message history."
 
-            tokens = memory.count_string_tokens(
-                str(self.conversation_history), model_name="gpt-4"
-            )
+            tokens = 0
             if tokens > 1000:
                 log("Message history is over 1000 tokens. Summarizing...")
-                chunks = memory.chunk_text(str(self.conversation_history))
-                summaries = memory.summarize_chunks(chunks)
+                chunks = []
+                summaries = []
                 summarized_history = " ".join(summaries)
                 return summarized_history
 

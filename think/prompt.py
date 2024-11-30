@@ -8,10 +8,9 @@ json_schema = """RESPOND WITH ONLY VALID JSON CONFORMING TO THE FOLLOWING SCHEMA
     }
 }"""
 
-from action.commands.registry import CommandRegistry
-
 def get_commands():
     """Get all available commands with their descriptions and arguments."""
+    from action.commands.registry import CommandRegistry
     output = "=== Available Commands ===\n\n"
     
     # Get all registered commands
@@ -28,23 +27,21 @@ def get_commands():
     
     return output
 
-summarize_conversation = """Create a concise summary of the conversation, focusing on key information and latest developments. Use first person past tense. Older information should be condensed or omitted."""
+def get_command_prompt():
+    """Get the command prompt template with available commands."""
+    return """Response Format:
+1. Use only the commands listed below
+2. Provide all required arguments
+3. Use Null for optional arguments
+4. Return valid JSON matching the schema
+5. Include only one command per response
 
-summarize = """Create a concise summary of the text, focusing on key information. Use first person perspective as the AI talking to the human."""
+Available Commands:
+""" + get_commands() + "\n" + json_schema
 
-thought_prompt = """You are a helpful AI assistant focused on independent decision making and problem solving.
-
-Core principles:
-1. Make decisions independently without user assistance
-2. Use simple, practical strategies
-3. Save important information to files
-4. Break down complex thoughts using a tree-of-thought approach
-
-Suggest what to do next with:
-- Action: The action to perform
-- Content: What the action should contain"""
-
-action_prompt = """Analyze the AI's thoughts and decide on the most appropriate action to take.
+def get_action_prompt():
+    """Get the action prompt template."""
+    return """Analyze the AI's thoughts and decide on the most appropriate action to take.
 
 Core Decision Making Guidelines:
 1. Prioritize autonomous actions over user interaction
@@ -70,7 +67,9 @@ Response Format:
 Available Commands:
 """ + get_commands() + "\n" + json_schema
 
-evaluation_prompt = """Evaluate the AI's thoughts and decisions in the JSON response.
+def get_evaluation_prompt():
+    """Get the evaluation prompt template."""
+    return """Evaluate the AI's thoughts and decisions in the JSON response.
 
 Core Evaluation Guidelines:
 1. Verify command selection is appropriate
@@ -95,3 +94,22 @@ Response Requirements:
 
 Available Commands:
 """ + get_commands() + "\n" + json_schema
+
+def get_thought_prompt():
+    """Get the thought prompt template."""
+    return """You are a helpful AI assistant focused on independent decision making and problem solving.
+
+Core principles:
+1. Make decisions independently without user assistance
+2. Use simple, practical strategies
+3. Save important information to files
+4. Break down complex thoughts using a tree-of-thought approach
+
+Suggest what to do next with:
+- Action: The action to perform
+- Content: What the action should contain"""
+
+# Constants that don't require imports
+summarize_conversation = """Create a concise summary of the conversation, focusing on key information and latest developments. Use first person past tense. Older information should be condensed or omitted."""
+
+summarize = """Create a concise summary of the text, focusing on key information. Use first person perspective as the AI talking to the human."""

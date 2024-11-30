@@ -12,7 +12,6 @@ from duckduckgo_search import DDGS
 import os
 
 from dotenv import load_dotenv
-from action.commands.registry import CommandRegistry
 
 COMMAND_CATEGORY = "web_search"
 COMMAND_CATEGORY_TITLE = "Web Search"
@@ -21,6 +20,9 @@ DUCKDUCKGO_MAX_ATTEMPTS = 3
 
 
 def take_action(command):
+    """Execute a command based on the AI's decision."""
+    from action.commands.registry import CommandRegistry
+    
     load_dotenv()
 
     try:
