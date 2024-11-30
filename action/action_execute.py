@@ -93,8 +93,8 @@ def take_action(command):
             log("Starting again I guess...")
             return
 
-        if ErrorCounter.get_error_count() > 0:
-            ErrorCounter.reset_error_count()
+        if ErrorCounter.get_count() > 0:
+            ErrorCounter.reset()
         log("Added to assistant content.")
     except Exception as e:
         log("ERROR WITHIN JSON RESPONSE!")
