@@ -10,27 +10,11 @@ json_schema = """RESPOND WITH ONLY VALID JSON CONFORMING TO THE FOLLOWING SCHEMA
 
 from action.commands.registry import CommandRegistry
 
-# Core system commands that are always available
-commands = [
-    {
-        "name": "ask_user",
-        "description": "Ask the user for input or tell them something and wait for their response. Use only when user input is absolutely necessary.",
-        "args": {"message": "<message that awaits user input>"},
-        "enabled": True,
-    },
-    {
-        "name": "conversation_history",
-        "description": "Gets the full conversation history",
-        "args": None,
-        "enabled": True,
-    },
-]
-
 def get_commands():
     """Get all available commands with their descriptions and arguments."""
     output = "=== Available Commands ===\n\n"
     
-    # First add registered commands as they are the primary tools
+    # Get all registered commands
     for command in CommandRegistry.get_available_commands():
         output += f"Command: {command['name']}\n"
         output += f"Description: {command['description']}\n"
@@ -42,22 +26,7 @@ def get_commands():
             output += "Arguments: None\n"
         output += "\n"
     
-    # Then add core system commands
-    output += "=== Core System Commands ===\n\n"
-    for command in commands:
-        if command["enabled"] != True:
-            continue
-        output += f"Command: {command['name']}\n"
-        output += f"Description: {command['description']}\n"
-        if command["args"] is not None:
-            output += "Arguments:\n"
-            for arg, description in command["args"].items():
-                output += f"  {arg}: {description}\n"
-        else:
-            output += "Arguments: None\n"
-        output += "\n"
-    
-    return output.strip()
+    return output
 
 summarize_conversation = """Create a concise summary of the conversation, focusing on key information and latest developments. Use first person past tense. Older information should be condensed or omitted."""
 

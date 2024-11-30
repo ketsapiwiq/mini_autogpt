@@ -1,7 +1,8 @@
 """Command registry for mini_autogpt."""
-from typing import Dict, Type, Optional, List
+from typing import Dict, Type, Optional, List, Any
 from . import Command
 from utils.log import log
+import think.prompt as prompt
 
 class CommandRegistry:
     """Registry for all available commands."""
@@ -32,18 +33,14 @@ class CommandRegistry:
         return cls._commands.get(name)
     
     @classmethod
-    def get_available_commands(cls) -> List[Dict[str, str]]:
-        """Get information about all available commands.
-        
-        Returns:
-            List of dictionaries containing command name, description, and arguments
-        """
+    def get_available_commands(cls) -> List[Dict[str, Any]]:
+        """Get list of available commands with their descriptions."""
         commands = []
         for name, command_class in cls._commands.items():
+            command_instance = command_class()
             doc = command_class.__doc__ or "No description available"
             # Clean up docstring
             doc = doc.strip().split('\n')[0]
-            command_instance = command_class()
             commands.append({
                 "name": name,
                 "description": doc,

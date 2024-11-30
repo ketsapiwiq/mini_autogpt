@@ -21,7 +21,7 @@ class AgentCommandExecutor(Command):
         
     def _create_system_agent(self):
         """Create agent for handling system commands."""
-        system_commands = ["ask_user", "conversation_history"]
+        system_commands = ["conversation_history"]
         agent = CommandAgent(
             name="SystemAgent",
             instructions="Handle core system interactions and user communication.",

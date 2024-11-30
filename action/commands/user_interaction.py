@@ -5,6 +5,7 @@ from .prompt_builder import BasicPromptTemplate
 from utils.simple_telegram import TelegramUtils
 from utils.log import log
 import os
+import json
 
 telegram = TelegramUtils.get_instance(
     api_key=os.getenv('TELEGRAM_API_KEY'),
@@ -137,8 +138,68 @@ Consider:
         telegram.tell_user(message)
         return {"status": "success"}
 
+class ExtractTasksCommand(Command):
+    """Extract possible tasks from conversation history."""
+    
+    def execute(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        from think.memory import load_response_history
+        import utils.llm as llm
+        from utils.task_tree import create_task_from_json
+        
+        # Get conversation history
+        message_history = load_response_history()
+        
+        # Build prompt for task extraction
+        task_history = llm.build_prompt("""You are a task analyzer. Extract clear tasks from the conversation history.
+Output in this JSON format (priority 1-5, lower is higher priority):
+{
+    "tasks": [
+        {
+            "task": "clear task description",
+            "priority": priority_number,
+            "description": "detailed description of what needs to be done",
+            "status": "pending"
+        }
+    ]
+}
+If no clear tasks can be extracted, return {"tasks": []}.""")
+        
+        task_history.append({
+            "role": "user", 
+            "content": f"Extract tasks from this conversation history:\n{str(message_history)}"
+        })
+        
+        try:
+            task_response = llm.llm_request(task_history)
+            task_data = json.loads(task_response)
+            
+            created_tasks = []
+            for task in task_data.get("tasks", []):
+                task_id = create_task_from_json(task)
+                created_tasks.append({
+                    "id": task_id,
+                    "task": task["task"]
+                })
+            
+            return {
+                "status": "success",
+                "tasks_created": created_tasks
+            }
+            
+        except Exception as e:
+            return {
+                "status": "error",
+                "error": str(e)
+            }
+    
+    def get_args(self) -> Dict[str, str]:
+        return {}
+
 # Register commands
 from .registry import CommandRegistry
 CommandRegistry.register("send_message", SendMessageCommand)
-CommandRegistry.register("ask_user", AskUserCommand)
+# ask_user intentionally disabled
 CommandRegistry.register("tell_user", TellUserCommand)
+CommandRegistry.register("extract_tasks", ExtractTasksCommand)
+CommandRegistry.register("show_conv_history", ExtractTasksCommand)  # Alias for conversation history
+CommandRegistry.register("agent_execute", AgentCommandExecutor)

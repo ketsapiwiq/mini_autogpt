@@ -1,17 +1,20 @@
-.PHONY: list install run test test-ollama test-all clean
+.PHONY: list install run test test-ollama test-all clean show-prompt show-decision-prompt
 
-list: ## List all available bot commands
-	@echo "Available bot commands:"
-	@find ./action/commands -name "*.py" ! -name "__init__.py" -type f -exec grep -h "class.*Command" {} \; | \
-		grep -v "Command:" | \
-		grep -v "command_class" | \
-		grep -v "CommandRegistry" | \
-		sed 's/class //g' | \
-		sed 's/(Command)://g' | \
-		sed 's/:$$//g' | \
-		grep -v "^[[:space:]]*def" | \
-		sort | \
-		sed 's/^[[:space:]]*//g'
+list: ## List all enabled bot commands
+	@echo "Available enabled bot commands:"
+	@python -c "from action.commands.registry import CommandRegistry; \
+		print('\n'.join([f'{cmd[\"name\"]}: {cmd[\"description\"]}' for cmd in CommandRegistry.get_available_commands()]))"
+
+show-prompt: ## Show prompt for a specific command (usage: make show-prompt cmd=<command_name>)
+	@python -c "from action.commands.registry import CommandRegistry; \
+		from action.commands.prompt_builder import CommandPrompt; \
+		cmd = '$(cmd)'; \
+		prompt = CommandPrompt.get_prompt(cmd) if cmd else None; \
+		print(f'Prompt for command \"{cmd}\":\n{prompt}' if prompt else 'Command not found or no prompt available')"
+
+show-decision-prompt: ## Show the decision-making prompt used by the system
+	@python -c "import think.prompt as prompt; \
+		print('Decision-making prompt:\n' + prompt.action_prompt)"
 
 install: ## Install project dependencies
 	pip install -r requirements.txt
