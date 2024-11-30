@@ -6,7 +6,7 @@ from colorama import init, Fore, Style
 
 init(autoreset=True)  # Initialize colorama with autoreset
 
-DEBUG = True  # Set to True to enable debug logging
+DEBUG = False  # Set to False to disable debug logging
 
 def log(message, end="\n", flush=True):
     """Log a message to stdout."""
