@@ -43,13 +43,28 @@ def llm_request(history):
         )
 
         log(f"Attempting request with MODEL={model} to URL={api_url}")
-        log("Request history: " + str(history))
+        
+        # Ensure proper message format
+        formatted_history = []
+        for msg in history:
+            if isinstance(msg, dict) and 'role' in msg and 'content' in msg:
+                # If content is a dict, convert it to string
+                if isinstance(msg['content'], dict):
+                    msg['content'] = str(msg['content'])
+                formatted_history.append(msg)
+            elif isinstance(msg, str):
+                # If message is a string, assume it's user content
+                formatted_history.append({"role": "user", "content": msg})
+            else:
+                debug(f"Skipping invalid message format: {msg}")
+
+        log("Request history: " + str(formatted_history))
 
         debug("Sending request to API")
         # Send the request with streaming enabled
         response = client.chat.completions.create(
             model=model,
-            messages=history,
+            messages=formatted_history,
             temperature=temperature,
             max_tokens=max_tokens,
             stream=True
@@ -60,22 +75,21 @@ def llm_request(history):
         collected_messages = []
         debug("Starting to process stream")
         for chunk in response:
-            debug(f"Received chunk: {chunk}")
+            # debug(f"Received chunk: {chunk}")
             if chunk.choices[0].delta.content is not None:
                 content = chunk.choices[0].delta.content
                 collected_messages.append(content)
                 print(content, end='', flush=True)  # Print in real-time
-        
+        print()  # New line after all chunks
+
+        # Join all collected messages into a single string
         full_response = ''.join(collected_messages)
-        debug(f"Completed response length: {len(full_response)}")
-        log(f"Completed response: {full_response[:100]}...")  # Log first 100 chars
+        debug(f"Full response: {full_response}")
         return full_response
 
     except Exception as e:
         debug(f"Error in llm_request: {str(e)}")
         debug(f"Full traceback: {traceback.format_exc()}")
-        log(f"Error in llm_request: {str(e)}")
-        log(f"Full traceback: {traceback.format_exc()}")
         return None
 
 def build_context(history, conversation_history, message_history):

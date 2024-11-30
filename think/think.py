@@ -27,8 +27,16 @@ def analyze_decision(thoughts, decision):
     
     # If decision is to ask user, include conversation history for context
     try:
-        decision_dict = json.loads(decision) if isinstance(decision, str) else decision
-        if decision_dict.get("command") == "ask_user":
+        # Handle the decision input
+        if isinstance(decision, str):
+            try:
+                decision_dict = json.loads(decision)
+            except json.JSONDecodeError:
+                decision_dict = decision
+        else:
+            decision_dict = decision
+
+        if isinstance(decision_dict, dict) and decision_dict.get("command") == "ask_user":
             history = llm.build_context(
                 history=history,
                 conversation_history=memory.get_response_history(),
@@ -41,29 +49,29 @@ def analyze_decision(thoughts, decision):
     history.append({"role": "user", "content": context})
     response = llm.llm_request(history)
 
-    # Response is already a string
-    assistant_message = response
-    
-    if not validate_json(assistant_message):
-        assistant_message = extract_json_from_response(assistant_message)
+    # Handle the response
+    if isinstance(response, dict):
+        return response
 
-    if validate_json(assistant_message):
-        # Ensure we return a proper dictionary
-        try:
-            return json.loads(assistant_message)
-        except json.JSONDecodeError:
-            log("Failed to parse JSON after validation")
+    try:
+        if not validate_json(response):
+            response = extract_json_from_response(response)
+        
+        if validate_json(response):
+            if isinstance(response, dict):
+                return response
+            return json.loads(response)
+        else:
             ErrorCounter.increment()
-    else:
+            if ErrorCounter.get_count() >= 5:
+                log("Got too many bad quality responses!")
+                exit(1)
+            return None
+    except Exception as e:
+        log(f"Error processing response: {str(e)}")
         ErrorCounter.increment()
-        if ErrorCounter.get_count() >= 5:
-            log("Got too many bad quality responses!")
-            exit(1)
+        return None
 
-        save_debug(history, response=response)
-        log("Retry Decision as faulty JSON!")
-        history.append({"role": "system", "content": "Final JSON:\n"})
-        return analyze_decision(thoughts, decision)
 
 def generate_thoughts():
     """
