@@ -1,7 +1,7 @@
 import os
 import json
 from datetime import datetime
-from utils.task_tree import create_task, get_highest_priority_task
+from utils.task_tree import create_task, get_highest_priority_task, get_active_task
 from utils.log import log
 
 def get_first_task(folder_path="tasks"):
@@ -13,6 +13,9 @@ def get_first_task(folder_path="tasks"):
     task = get_highest_priority_task()
     if task:
         log(f"Found task: {task.get('title', 'Unknown')}")
+        active_task = get_active_task()
+        if active_task:
+            log(f"Current active task: {active_task.get('title', 'Unknown')}")
     else:
         log("No tasks found")
     return task

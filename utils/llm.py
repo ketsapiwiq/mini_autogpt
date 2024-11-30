@@ -90,3 +90,10 @@ def build_context(history, conversation_history, message_history):
         for mem in memories:
             history.append({"role": "user", "content": mem})
     return history
+
+def build_prompt(prompt, conversation_history=None, message_history=None):
+    """
+    Builds a prompt for the LLM request using the existing build_context function.
+    """
+    history = [{"role": "user", "content": prompt}]
+    return build_context(history, conversation_history, message_history)

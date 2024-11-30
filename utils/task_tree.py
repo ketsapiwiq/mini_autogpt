@@ -9,6 +9,9 @@ TASKS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "tasks")
 ACTIVE_TASKS_DIR = os.path.join(TASKS_DIR, "active")
 COMPLETED_TASKS_DIR = os.path.join(TASKS_DIR, "completed")
 
+# Global variable to store the currently active task ID
+_active_task_id = None
+
 def ensure_task_directories():
     """Ensure all required task directories exist"""
     log("Creating task directories...")
@@ -96,6 +99,7 @@ def add_thought(task_id: str, thought: str):
 
 def get_highest_priority_task() -> Optional[Dict]:
     """Get the highest priority pending task"""
+    global _active_task_id
     log("Retrieving highest priority pending task")
     # TODO: Add support for custom folder paths instead of fixed ACTIVE_TASKS_DIR
     # TODO: Add validation for priority field type (int or float)
@@ -115,11 +119,25 @@ def get_highest_priority_task() -> Optional[Dict]:
                         task_data["priority"] < highest_priority):
                         highest_priority = task_data["priority"]
                         selected_task = task_data
+                        _active_task_id = task_id  # Set the active task ID
             except (json.JSONDecodeError, OSError) as e:
                 # TODO: Implement proper error logging here
                 pass
     
+    if not selected_task:
+        _active_task_id = None  # Clear active task if no task found
+        
     return selected_task
+
+def get_active_task() -> Optional[Dict]:
+    """Get the currently active task"""
+    global _active_task_id
+    if _active_task_id:
+        try:
+            return get_task(_active_task_id)
+        except (FileNotFoundError, json.JSONDecodeError):
+            _active_task_id = None
+    return None
 
 def create_subtask(parent_id: str, title: str, description: str, 
                    priority: Optional[int] = None) -> str:

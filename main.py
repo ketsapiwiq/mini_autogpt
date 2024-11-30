@@ -1,6 +1,8 @@
 """Main entry point for mini_autogpt."""
-import think.think as think
-from utils.log import log
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).parent))
+from think.think import process_thoughts
 import time
 
 def main():
@@ -8,13 +10,13 @@ def main():
     write_start_message()
     while True:
         try:
-            think.run_think()
+            process_thoughts()
             time.sleep(1)
         except KeyboardInterrupt:
-            log("Shutting down...")
+            print("Shutting down...")
             break
         except Exception as e:
-            log(f"Error in main loop: {e}")
+            print(f"Error in main loop: {e}")
             time.sleep(5)
 
 def write_start_message():
@@ -24,7 +26,7 @@ def write_start_message():
                          ░▓█▓░░                          
          ▒▒▒      ██░ ░░░░░░░░░░ ░░██░      ▒░           
          ▒▒▒░ ░█░░▒░░░░░░░░░     ░░░▒ ░█   ░▒░░          
-      ▒░    ░█ ▒▒░░░░░░░░░░░░░░░░░░░░▒▒▒ █      ░▒       
+      ▒░    ░█ ▒▒░░░░░░░░░░░░░░░░░▒▒▒ █      ░▒       
      ░▒▒░  ▒░▒▒▒░███░░░░░░░░░░░░░░░███░▒▒░▓░  ▒▒▒░▒▒     
       ░   ▒░▒▒▒░░░░░░░░░░░░░░░░░░░░░░░░░▒▒▒░    ░▒       
           █▒▒░░██░░░▒░░░░░░░░░░░░░░░░░██░░▒▒█            
@@ -34,15 +36,15 @@ def write_start_message():
          ░█▒▒▒░ ▓░░░░░█░░░▒▒▒░░░█░░░░▓░ ░▒▒░█            
     ░█░█░ ░█▒▒▒▓▒░▒░░░░░░░░░░░░░░░░░▒▓▓▒▒▒░█  ▒░░█░      
    █░░░█    █░▒▒▒▒▒▒▒▒▒░░░░░░░░░░▒▒▒▒▒▒▒▒░█   ░█░░░█     
-   █▓▒░░ ████▓██▒▒▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▒▒██▓████░░░▒▓█     
+   █▓▒░░ ████▓██▒▒▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▒▒██▓████░░░▒▓█     
    █▒▒▓▒░▒▒▒▒▓█▓▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▓█▒▒▒▒▒░▒▓▓▒▓     
     ▓▒██░░   ░░░░░░▓▓▒░░░░▓▓▓░░░░▒▓▓░░░░░░    ░██▒░      
     █░░░░░░░░░░░░▒▓█░▒░░░░▒▓▒░░░░▒░█▓░░░░░░░░░░░░░█      
-    █▓░░▓▓▒▒▒█░░░░░█░░░░░▒▓▓▓▒░░░░░█░░░░░█▒▒▒▒▓░░▒█      
+    █▓░░▓▓▒▒▒█░░░░░█░░░░░▒▓▓▓▒░░░░░░█░░░░░█▒▒▒▒▓░░▒█      
      ███░░▓▓█▒▓▒▒▒░░░░░▒▒▓▒█▓▓▒░░░░░░▒▒▓▓▒▓▓▓░░▓██       
      ░░░█████▓▒░▒▒░▒▒▒▒▒▒▒█░█▓▒▒▒▒▒▒▒▒▓▒░██████░░░       
       ░░░░░░░░██░░█▓░▒▒░█░░░░░█░█░░█▒░▒█"""
-    log(ascii_art)
+    print(ascii_art)
     message = """Hello my friend!
 I am Mini-Autogpt, a small version of Autogpt for smaller llms.
 I am here to help you and will try to contact you as soon as possible!
@@ -51,7 +53,7 @@ Note: I am still in development, so please be patient with me! <3
 
 """
     for char in message:
-        log(char, end="", flush=True)
+        print(char, end="", flush=True)
 
 if __name__ == "__main__":
     main()
