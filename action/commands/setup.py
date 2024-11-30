@@ -1,5 +1,5 @@
 """Command setup and registration."""
-from . import user_interaction, web_search, file_operations
+from . import user_interaction, web_search, file_operations, prompt_commands
 from .registry import CommandRegistry
 
 def register_commands():
@@ -14,3 +14,14 @@ def register_commands():
     CommandRegistry.register("git_stash", file_operations.GitStashCommand)
     CommandRegistry.register("git_commit_current", file_operations.GitCommitCurrentCommand)
     CommandRegistry.register("git_switch_branch", file_operations.GitSwitchBranchCommand)
+    
+    # Register user interaction commands
+    CommandRegistry.register("ask_user", user_interaction.AskUserCommand)
+    CommandRegistry.register("tell_user", user_interaction.TellUserCommand)
+    
+    # Register web search commands
+    CommandRegistry.register("web_search", web_search.WebSearchCommand)
+    
+    # Register prompt commands
+    CommandRegistry.register("get_prompt", prompt_commands.GetPromptCommand)
+    CommandRegistry.register("set_prompt", prompt_commands.SetPromptCommand)

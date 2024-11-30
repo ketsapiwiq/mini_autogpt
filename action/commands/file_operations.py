@@ -208,3 +208,72 @@ class GitSwitchBranchCommand(Command):
             error = f"Failed to switch branch: {str(e)}"
             log(error)
             return {"status": "error", "error": error}
+
+class CreateFileCommand(Command):
+    """Create a new file with the specified content."""
+    
+    def get_args(self) -> Dict[str, str]:
+        return {
+            "filepath": "Path to the file to create",
+            "content": "Content to write to the file"
+        }
+        
+    def validate_args(self, args: Dict[str, Any]) -> bool:
+        return "filepath" in args and "content" in args
+        
+    def execute(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        filepath = args["filepath"]
+        content = args["content"]
+        try:
+            # Create directory if it doesn't exist
+            os.makedirs(os.path.dirname(filepath), exist_ok=True)
+            with open(filepath, 'w') as f:
+                f.write(content)
+            return {"status": "success", "filepath": filepath}
+        except Exception as e:
+            error = f"Failed to create file {filepath}: {str(e)}"
+            log(error)
+            return {"status": "error", "error": error}
+
+class ApplyDiffToFileCommand(Command):
+    """Apply a diff to an existing file."""
+    
+    def get_args(self) -> Dict[str, str]:
+        return {
+            "filepath": "Path to the file to modify",
+            "diff": "The diff to apply (unified diff format)"
+        }
+        
+    def validate_args(self, args: Dict[str, Any]) -> bool:
+        return "filepath" in args and "diff" in args and os.path.exists(args["filepath"])
+        
+    def execute(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        filepath = args["filepath"]
+        diff = args["diff"]
+        try:
+            # Create a temporary file with the diff
+            temp_diff_file = filepath + ".diff"
+            with open(temp_diff_file, 'w') as f:
+                f.write(diff)
+            
+            # Apply the patch
+            result = subprocess.run(
+                ["patch", filepath, temp_diff_file],
+                capture_output=True,
+                text=True
+            )
+            
+            # Clean up
+            os.remove(temp_diff_file)
+            
+            if result.returncode == 0:
+                return {"status": "success", "message": result.stdout}
+            else:
+                error = f"Failed to apply diff: {result.stderr}"
+                log(error)
+                return {"status": "error", "error": error}
+                
+        except Exception as e:
+            error = f"Failed to apply diff to {filepath}: {str(e)}"
+            log(error)
+            return {"status": "error", "error": error}

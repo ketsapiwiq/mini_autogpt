@@ -75,43 +75,44 @@ def get_first_task():
             
     return next_task
 
-def create_task(task_name: str, description: str, priority: int = 3, status: str = "pending"):
+def create_task(title: str, description: str, priority: int = 3, source: str = "unknown", status: str = "pending") -> str:
     """
     Creates a new task file in the tasks directory.
     
     Args:
-        task_name (str): Name/title of the task
+        title (str): Title of the task
         description (str): Detailed description of the task
         priority (int): Priority level (1-5, lower is higher priority)
-        status (str): Current status of task (default: pending)
+        source (str): Source of the task creation
+        status (str): Current status of task
         
     Returns:
         str: ID of the created task
     """
     ensure_task_directories()
     
-    task_id = str(int(datetime.utcnow().timestamp()))
-    task_dir = os.path.join(ACTIVE_TASKS_DIR, task_id)
-    os.makedirs(task_dir)
-    os.makedirs(os.path.join(task_dir, "thoughts"))
-    os.makedirs(os.path.join(task_dir, "subtasks"))
+    # Generate unique task ID
+    task_id = datetime.now().strftime("%Y%m%d_%H%M%S")
     
+    # Create task directory
+    task_dir = os.path.join(ACTIVE_TASKS_DIR, task_id)
+    os.makedirs(task_dir, exist_ok=True)
+    
+    # Create task data
     task_data = {
         "id": task_id,
-        "task": task_name,
-        "priority": priority,
+        "title": title,
         "description": description,
+        "priority": priority,
         "status": status,
-        "created_at": datetime.utcnow().isoformat(),
-        "source": "user_message",
-        "dependencies": [],
-        "results": {}
+        "source": source,
+        "created_at": datetime.now().isoformat(),
+        "updated_at": datetime.now().isoformat()
     }
     
+    # Write task file
     task_file = os.path.join(task_dir, "task.json")
-    log(f"Creating task: {task_name} with priority {priority} in {task_file}")
-    
-    with open(task_file, 'w') as f:
-        json.dump(task_data, f, indent=4)
-    
+    with open(task_file, "w") as f:
+        json.dump(task_data, f, indent=2)
+        
     return task_id

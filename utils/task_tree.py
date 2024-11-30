@@ -10,7 +10,8 @@ from action.tasks import (
     COMPLETED_TASKS_DIR,
     ensure_task_directories,
     create_task as create_base_task,
-    get_first_task
+    get_first_task,
+    create_task,
 )
 
 # Global variable to store the currently active task ID
@@ -21,16 +22,16 @@ def create_task_from_json(task_data: Dict) -> str:
     log(f"Creating task from JSON: {task_data}")
     
     # Extract required fields with defaults
-    title = task_data.get("title", task_data.get("task", "Untitled Task"))
+    title = task_data.get("title", "Untitled Task")
     description = task_data.get("description", "No description provided")
     priority = task_data.get("priority", 3)
-    status = task_data.get("status", "pending")
+    source = task_data.get("source", "unknown")
     
     return create_base_task(
-        task_name=title,
+        title=title,
         description=description,
         priority=priority,
-        status=status
+        source=source
     )
 
 def get_task(task_id: str) -> Dict:
