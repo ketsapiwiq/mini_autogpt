@@ -85,10 +85,6 @@ def build_context(history, conversation_history, message_history):
     if message_history:
         for msg in message_history:
             history.append({"role": "user", "content": msg})
-    memories = think.memory.load_memories()
-    if memories:
-        for mem in memories:
-            history.append({"role": "user", "content": mem})
     return history
 
 def build_prompt(prompt, conversation_history=None, message_history=None):

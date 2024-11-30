@@ -133,7 +133,7 @@ If no clear task can be extracted, return null.""")
     )
 
     # If there's a task, think about it specifically
-    if current_task:
+    if current_task and 'task' in current_task:
         log(f"*** Thinking about task: {current_task['task']} ***")
         
         # Add task context
