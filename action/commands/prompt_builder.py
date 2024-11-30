@@ -1,6 +1,7 @@
 """Command prompt building system."""
 from typing import Dict, Any, Optional
 from abc import ABC, abstractmethod
+from utils.debug import debug_prompt, debug_json
 
 class PromptTemplate(ABC):
     """Base class for command prompt templates."""
@@ -52,10 +53,13 @@ class CommandPrompt:
         Returns:
             Formatted prompt string if template exists, None otherwise
         """
-        template = cls._prompts.get(command_name)
-        if template:
-            return template.build(args)
-        return None
+        if command_name not in cls._prompts:
+            return None
+            
+        prompt = cls._prompts[command_name].build(args)
+        debug_prompt(prompt, f"COMMAND: {command_name}")
+        debug_json(args, "ARGUMENTS")
+        return prompt
 
 class BasicPromptTemplate(PromptTemplate):
     """Basic implementation of a prompt template."""
