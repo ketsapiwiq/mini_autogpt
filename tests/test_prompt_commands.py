@@ -6,7 +6,7 @@ from action.commands import setup
 class TestPromptCommands(unittest.TestCase):
     def setUp(self):
         # Initialize the command registry
-        setup.setup_commands()
+        setup.register_commands()
 
     def test_all_commands_included(self):
         """Test that all possible commands are included in the prompt."""

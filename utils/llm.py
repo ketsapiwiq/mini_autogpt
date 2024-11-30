@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from utils.log import log, debug
 import json
 import traceback
+import ollama
 
 def one_shot_request(prompt, system_context):
     history = []
@@ -16,12 +17,77 @@ def one_shot_request(prompt, system_context):
         log("Error in one_shot_request")
         return None
 
-def llm_request(history):
+def test_function_calling_support():
+    """Test if Ollama supports function calling."""
+    try:
+        # Simple test function
+        def add_numbers(a: int, b: int) -> int:
+            return a + b
+
+        response = ollama.chat(
+            model='llama2',  # Use default model
+            messages=[{'role': 'user', 'content': 'What is 2 + 2?'}],
+            tools=[add_numbers],
+        )
+        
+        # Check if response has tool_calls attribute and it works as expected
+        if hasattr(response.message, 'tool_calls') and response.message.tool_calls:
+            return True
+        return False
+    except Exception as e:
+        debug(f"Function calling test failed: {str(e)}")
+        return False
+
+def llm_request_with_functions(history, available_functions=None):
     """
-    Sends a request to the OpenAI-compatible API using the ChatCompletion endpoint with streaming.
-    Processes and prints the response in real time.
+    Sends a request to Ollama with function calling support.
+    """
+    load_dotenv()
+    model = os.getenv("MODEL", "llama2").split('#')[0].strip()
+    
+    try:
+        response = ollama.chat(
+            model=model,
+            messages=history,
+            tools=list(available_functions.values()) if available_functions else None,
+        )
+
+        # Handle function calls if present
+        if hasattr(response.message, 'tool_calls') and response.message.tool_calls:
+            for tool in response.message.tool_calls:
+                function_to_call = available_functions.get(tool.function.name)
+                if function_to_call:
+                    result = function_to_call(**tool.function.arguments)
+                    # Add function result to conversation
+                    history.append({
+                        'role': 'function',
+                        'name': tool.function.name,
+                        'content': str(result)
+                    })
+            
+            # Get final response after function calls
+            final_response = ollama.chat(model=model, messages=history)
+            return final_response.message.content
+        
+        return response.message.content
+    except Exception as e:
+        debug(f"Error in llm_request_with_functions: {str(e)}")
+        return None
+
+def llm_request(history, available_functions=None):
+    """
+    Sends a request to the LLM API, attempting to use function calling if supported.
+    Falls back to standard chat completion if not supported.
     """
     debug("Starting LLM request")
+    
+    # Test for function calling support if functions are provided
+    if available_functions and test_function_calling_support():
+        debug("Using Ollama function calling")
+        return llm_request_with_functions(history, available_functions)
+    
+    # Fall back to standard chat completion
+    debug("Using standard chat completion")
     load_dotenv()
     # Strip any comments and whitespace from environment variables
     model = os.getenv("MODEL", "llama3.1:8b-instruct-q8_0").split('#')[0].strip()

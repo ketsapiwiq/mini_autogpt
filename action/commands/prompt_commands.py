@@ -1,5 +1,5 @@
 """Prompt-related commands."""
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from . import Command
 from think.prompt import commands as static_commands
 
@@ -27,6 +27,14 @@ class GetPromptCommand(Command):
             True if arguments are valid, False otherwise
         """
         return True
+
+    def get_args(self) -> Optional[Dict[str, str]]:
+        """Get command argument descriptions.
+        
+        Returns:
+            None since this command takes no arguments
+        """
+        return None
 
 class SetPromptCommand(Command):
     """Command to set/update prompt commands."""
@@ -63,3 +71,14 @@ class SetPromptCommand(Command):
             True if arguments are valid, False otherwise
         """
         return "name" in args and isinstance(args.get("enabled", True), bool)
+
+    def get_args(self) -> Optional[Dict[str, str]]:
+        """Get command argument descriptions.
+        
+        Returns:
+            Dictionary describing the required arguments
+        """
+        return {
+            "name": "Name of the command to enable/disable",
+            "enabled": "Boolean flag to enable (True) or disable (False) the command"
+        }

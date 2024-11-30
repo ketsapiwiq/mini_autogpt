@@ -1,3 +1,4 @@
+ollama
 openai
 python-telegram-bot
 tiktoken

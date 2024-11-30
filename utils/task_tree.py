@@ -37,9 +37,9 @@ def create_task_from_json(task_data: Dict) -> str:
 def get_task(task_id: str) -> Dict:
     """Get task data by ID"""
     log(f"Retrieving task data for ID: {task_id}")
-    task_file = os.path.join(ACTIVE_TASKS_DIR, task_id, "task.json")
+    task_file = os.path.join(ACTIVE_TASKS_DIR, f"{task_id}.json")
     if not os.path.exists(task_file):
-        task_file = os.path.join(COMPLETED_TASKS_DIR, task_id, "task.json")
+        task_file = os.path.join(COMPLETED_TASKS_DIR, f"{task_id}.json")
     
     with open(task_file) as f:
         return json.load(f)
@@ -47,8 +47,7 @@ def get_task(task_id: str) -> Dict:
 def update_task_status(task_id: str, status: str, results: Optional[Dict] = None):
     """Update task status and optionally add results"""
     log(f"Updating task status for ID: {task_id} to {status}")
-    task_dir = os.path.join(ACTIVE_TASKS_DIR, task_id)
-    task_file = os.path.join(task_dir, "task.json")
+    task_file = os.path.join(ACTIVE_TASKS_DIR, f"{task_id}.json")
     
     with open(task_file) as f:
         task_data = json.load(f)
@@ -57,25 +56,32 @@ def update_task_status(task_id: str, status: str, results: Optional[Dict] = None
     if results:
         task_data["results"] = results
     
-    with open(task_file, "w") as f:
-        json.dump(task_data, f, indent=2)
-    
     if status == "completed":
         # Move to completed directory
         log(f"Moving task to completed directory: {task_id}")
-        target_dir = os.path.join(COMPLETED_TASKS_DIR, task_id)
-        os.makedirs(os.path.dirname(target_dir), exist_ok=True)
-        os.rename(task_dir, target_dir)
+        target_file = os.path.join(COMPLETED_TASKS_DIR, f"{task_id}.json")
+        os.makedirs(os.path.dirname(target_file), exist_ok=True)
+        with open(target_file, "w") as f:
+            json.dump(task_data, f, indent=2)
+        os.remove(task_file)
+    else:
+        with open(task_file, "w") as f:
+            json.dump(task_data, f, indent=2)
 
 def add_thought(task_id: str, thought: str):
     """Add a thought to the task's thought process"""
     log(f"Adding thought to task ID: {task_id}")
-    thought_dir = os.path.join(ACTIVE_TASKS_DIR, task_id, "thoughts")
-    timestamp = datetime.utcnow().isoformat()
-    thought_file = os.path.join(thought_dir, f"{timestamp}.txt")
+    task_file = os.path.join(ACTIVE_TASKS_DIR, f"{task_id}.json")
     
-    with open(thought_file, "w") as f:
-        f.write(thought)
+    with open(task_file) as f:
+        task_data = json.load(f)
+    
+    if "thoughts" not in task_data:
+        task_data["thoughts"] = []
+    task_data["thoughts"].append(thought)
+    
+    with open(task_file, "w") as f:
+        json.dump(task_data, f, indent=2)
 
 def get_active_task() -> Optional[Dict]:
     """Get the currently active task"""
@@ -93,43 +99,43 @@ def create_subtask(parent_id: str, title: str, description: str, priority: Optio
     if not priority:
         priority = parent_task.get("priority", 3)
     
-    subtask_id = create_base_task(
-        task_name=title,
+    subtask_id = create_task(
+        title=title,
         description=description,
         priority=priority
     )
     
-    # Add subtask reference to parent
-    subtasks_dir = os.path.join(ACTIVE_TASKS_DIR, parent_id, "subtasks")
-    with open(os.path.join(subtasks_dir, f"{subtask_id}.json"), "w") as f:
-        json.dump({"id": subtask_id, "title": title}, f)
+    # Link subtask to parent
+    task_file = os.path.join(ACTIVE_TASKS_DIR, f"{subtask_id}.json")
+    with open(task_file) as f:
+        task_data = json.load(f)
+    
+    task_data["parent_id"] = parent_id
+    
+    with open(task_file, "w") as f:
+        json.dump(task_data, f, indent=2)
     
     return subtask_id
 
 def get_highest_priority_task() -> Optional[Dict]:
     """Get the highest priority pending task"""
-    global _active_task_id
     log("Retrieving highest priority pending task")
     
-    highest_priority = float('inf')
-    selected_task = None
+    # Ensure task directories exist
+    ensure_task_directories()
     
-    for task_id in os.listdir(ACTIVE_TASKS_DIR):
-        task_file = os.path.join(ACTIVE_TASKS_DIR, task_id, "task.json")
-        if os.path.exists(task_file):
-            try:
-                with open(task_file) as f:
-                    task_data = json.load(f)
-                    if (task_data["status"] == "pending" and 
-                        task_data["priority"] < highest_priority):
-                        highest_priority = task_data["priority"]
-                        selected_task = task_data
-                        _active_task_id = task_id  # Set the active task ID
-            except (json.JSONDecodeError, OSError) as e:
-                # TODO: Implement proper error logging here
-                pass
+    # List all active tasks
+    active_tasks = []
+    for filename in os.listdir(ACTIVE_TASKS_DIR):
+        if filename.endswith(".json"):
+            task_file = os.path.join(ACTIVE_TASKS_DIR, filename)
+            with open(task_file) as f:
+                task_data = json.load(f)
+                if task_data.get("status", "pending") == "pending":
+                    active_tasks.append(task_data)
     
-    if not selected_task:
-        _active_task_id = None  # Clear active task if no task found
-        
-    return selected_task
+    if not active_tasks:
+        return None
+    
+    # Sort by priority (lower number = higher priority)
+    return sorted(active_tasks, key=lambda x: x.get("priority", 3))[0]

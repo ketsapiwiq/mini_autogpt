@@ -1,4 +1,4 @@
-.PHONY: list install run test clean
+.PHONY: list install run test test-ollama test-all clean
 
 list: ## List all available bot commands
 	@echo "Available bot commands:"
@@ -21,6 +21,11 @@ run: ## Run the mini AutoGPT
 
 test: ## Run tests
 	python -m pytest
+
+test-ollama: ## Run Ollama-specific tests
+	python -m pytest utils/llm_test.py -v -k "test_ollama"
+
+test-all: test test-ollama ## Run all tests including Ollama tests
 
 clean: ## Clean up Python cache files
 	find . -type f -name "*.pyc" -delete
