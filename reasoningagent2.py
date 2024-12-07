@@ -9,8 +9,8 @@ config_list = [{"model": "llama3.1:8b-instruct-q8_0", "api_key":"sdfsdf", "base_
 reasoning_agent = ReasoningAgent(
     name="reason_agent",
     llm_config={"config_list": config_list},
-    verbose=False,
-    beam_size=1,  # Using beam size 1 for O1-style reasoning
+    verbose=True,
+    beam_size=3,  # Using beam size 1 for O1-style reasoning
     max_depth=3,
 )
 
@@ -33,7 +33,7 @@ with open("reasoning_tree.json", "w") as f:
     json.dump(data, f)
 
 # recover the node
-new_node = ThinkNode.from_dict(json.load(open("reasoning_tree.json", "r")))
-visualize_tree(reason_agent._root)
+#new_node = ThinkNode.from_dict(json.load(open("reasoning_tree.json", "r")))
+visualize_tree(reasoning_agent._root)
 
 
