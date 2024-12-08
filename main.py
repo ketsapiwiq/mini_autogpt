@@ -10,27 +10,26 @@ def main():
     """Run the main AI loop."""
     log("*** Starting up... ***")
     
-    # Register all available commands
-    # register_commands()
-    
-    # Log available commands for debugging
-    # commands = CommandRegistry.get_available_commands()
-    # debug("Registered Commands:")
-    # for cmd in commands:
-    #     debug(f"- {cmd['name']}: {cmd['description']}")
-    
     log("*** I am thinking... ***")
     while True:
-        try:
-            process_tasks()
-            time.sleep(1)
-        except KeyboardInterrupt:
-            print("Shutting down...")
-            break
-        except Exception as e:
-            print(f"Error in main loop: {str(e)}")
-            print(f"Full traceback: {traceback.format_exc()}")
-            time.sleep(5)
+        # Process tasks
+        tasks = process_tasks()
+        
+        # If no tasks, wait for Telegram messages
+        if not tasks:
+            from utils.simple_telegram import TelegramUtils
+            telegram_utils = TelegramUtils.get_instance()
+            
+            if telegram_utils:
+                log("No active tasks. Waiting for Telegram messages...")
+                messages = telegram_utils.get_last_few_messages()
+                
+                # Process Telegram messages if any
+                if messages:
+                    log(f"Received {len(messages)} Telegram messages")
+                    # TODO: Add logic to process Telegram messages
+        
+        time.sleep(1)  # Prevent tight loop
 
 def write_start_message():
     """Display the startup ASCII art."""
@@ -50,7 +49,7 @@ def write_start_message():
     ░█░█░ ░█▒▒▒▓▒░▒░░░░░░░░░░░░░░░░░▒▓▓▒▒▒░█  ▒░░█░      
    █░░░█    █░▒▒▒▒▒▒▒▒▒░░░░░░░░░░▒▒▒▒▒▒▒▒░█   ░█░░░█     
    █▓▒░░ ████▓██▒▒▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▒▒██▓████░░░▒▓█     
-   █▒▒▓▒░▒▒▒▒▓█▓▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▓█▒▒▒▒▒░▒▓▓▒▓     
+   █▒▒▓▒░▒▒▒▒▓█▓▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▓█▒▒▒▒▒░▒▓▓▒▓     
     ▓▒██░░   ░░░░░░▓▓▒░░░░▓▓▓░░░░▒▓▓░░░░░░    ░██▒░      
     █░░░░░░░░░░░░▒▓█░▒░░░░▒▓▒░░░░▒░█▓░░░░░░░░░░░░░█      
     █▓░░▓▓▒▒▒█░░░░░█░░░░░▒▓▓▓▒░░░░░░█░░░░░█▒▒▒▒▓░░▒█      

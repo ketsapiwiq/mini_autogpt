@@ -14,7 +14,6 @@ load_dotenv()
 
 response_queue = ""
 
-
 def run_async(coro):
     try:
         loop = asyncio.get_running_loop()
@@ -27,56 +26,55 @@ def run_async(coro):
             asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
         return asyncio.run(coro)
 
+def get_telegram_config():
+    """
+    Safely retrieve Telegram configuration from environment variables.
+    
+    Returns:
+        tuple: (api_key, chat_id) or (None, None) if not configured
+    """
+    try:
+        # Reload environment variables to ensure latest values
+        load_dotenv(override=True)
+        
+        # Get API key and chat ID from environment variables
+        api_key = os.getenv('TELEGRAM_API_KEY')
+        chat_id = os.getenv('TELEGRAM_CHAT_ID')
+        
+        if not api_key or not chat_id:
+            log("Telegram configuration incomplete. API key or Chat ID missing.")
+            return None, None
+        
+        return api_key, chat_id
+    except Exception as e:
+        log(f"Error retrieving Telegram configuration: {e}")
+        return None, None
 
 class TelegramUtils:
     _instance = None
     
     @classmethod
     def get_instance(cls, api_key: str = None, chat_id: str = None):
+        # If no credentials provided, try to get from environment
+        if not api_key or not chat_id:
+            api_key, chat_id = get_telegram_config()
+        
+        # If still no credentials, return None or raise an exception
+        if not api_key or not chat_id:
+            log("Cannot initialize Telegram: Missing credentials")
+            return None
+
         if cls._instance is None:
             cls._instance = cls(api_key, chat_id)
         return cls._instance
 
-    def __init__(self, api_key: str = None, chat_id: str = None):
+    def __init__(self, api_key: str, chat_id: str):
+        # Remove the exit(1) and replace with more flexible error handling
         if not api_key:
-            log(
-                "No api key provided. Please set the TELEGRAM_API_KEY environment variable."
-            )
-            log("You can get your api key by talking to @BotFather on Telegram.")
-            log(
-                "For more information, please visit: https://core.telegram.org/bots/tutorial#6-botfather"
-            )
-            exit(1)
+            log("No API key provided for Telegram.")
+            return
 
         self.api_key = api_key
-
-        if not chat_id:
-            log(
-                "Telegram: No chat id provided. Please set the TELEGRAM_CHAT_ID environment variable."
-            )
-            user_input = input(
-                "Would you like to send a test message to your bot to get the id? (y/n): "
-            )
-            if user_input == "y":
-                try:
-                    log("Please send a message to your telegram bot now.")
-                    update = self.poll_anyMessage()
-                    log("Message received! Getting chat id...")
-                    chat_id = update.message.chat.id
-                    log("Your chat id is: " + str(chat_id))
-                    log("And the message is: " + update.message.text)
-                    confirmation = random.randint(1000, 9999)
-                    log("Sending confirmation message: " + str(confirmation))
-                    text = f"Hello! Your chat id is: {chat_id} and the confirmation code is: {confirmation}"
-                    self.chat_id = chat_id
-                    self._send_message(text)  # Send confirmation message
-                    log(
-                        "Please set the TELEGRAM_CHAT_ID environment variable to this value."
-                    )
-                except TimedOut:
-                    log(
-                        "Error while sending test message. Please check your Telegram bot."
-                    )
         self.chat_id = chat_id
         self.load_conversation_history()
 
