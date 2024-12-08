@@ -44,7 +44,7 @@ manager = autogen.GroupChatManager(
 from autogen.agentchat.contrib.society_of_mind_agent import SocietyOfMindAgent  # noqa: E402
 
  # task = "On which days in 2024 was Microsoft Stock higher than $370?"
-task = "What is the expected maximum dice value if you can roll a 6-sided dice three times?"
+# task = "What is the expected maximum dice value if you can roll a 6-sided dice three times?"
 society_of_mind_agent = SocietyOfMindAgent(
     "society_of_mind",
     chat_manager=manager,
@@ -58,8 +58,3 @@ user_proxy = autogen.UserProxyAgent(
     default_auto_reply="",
     is_termination_msg=lambda x: True,
 )
-
-user_proxy.initiate_chat(society_of_mind_agent, message=task)
-
-
-

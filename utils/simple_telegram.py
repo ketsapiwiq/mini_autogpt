@@ -283,19 +283,74 @@ class TelegramUtils:
 
 from typing import Dict
 from utils.task_tree import create_task_from_json
+from autogen import Agent, AssistantAgent, UserProxyAgent, config_list_from_json
+from guidance import models
+import re
 
 def is_message_a_task(message: Dict) -> bool:
     """
-    Placeholder function to determine if a message represents a task.
-    Currently always returns True.
+    Determine if a Telegram message represents a task using an Autogen agent.
     
     Args:
         message (Dict): Telegram message dictionary
     
     Returns:
-        bool: Always True for now
+        bool: True if the message appears to be a task, False otherwise
     """
-    return True
+    try:
+        # Extract the message text
+        message_text = message.get('text', '')
+        
+        # If message is empty, it's not a task
+        if not message_text:
+            return False
+        
+        # Load Autogen configuration
+        llm_config = config_list_from_json("OAI_CONFIG_LIST")[0]
+        
+        # Create an assistant agent to evaluate the message
+        task_classifier = AssistantAgent(
+            "task_classifier", 
+            system_message="You are an expert at identifying tasks from text messages. "
+                           "Respond with 'yes' if the message describes a task to be done, "
+                           "or 'no' if it does not.",
+            llm_config=llm_config
+        )
+        
+        # Create a user proxy agent to initiate the conversation
+        user_proxy = UserProxyAgent(
+            "user_proxy", 
+            human_input_mode="TERMINATE",
+            max_consecutive_auto_reply=1
+        )
+        
+        # Store the task classification result
+        task_classification = [None]
+        
+        def is_task_message(recipient, messages, sender, config):
+            # Use the last message for classification
+            last_message = messages[-1]['content']
+            
+            # Classify the message
+            task_classification[0] = 'yes' in last_message.lower()
+            return True, "Task classification complete."
+        
+        # Register the custom reply function
+        task_classifier.register_reply(Agent, is_task_message, 1)
+        
+        # Initiate the chat to classify the message
+        user_proxy.initiate_chat(
+            task_classifier, 
+            message=f"Is the following message a task that needs to be done? Message: '{message_text}'"
+        )
+        
+        # Return the classification result
+        return task_classification[0] or False
+    
+    except Exception as e:
+        log(f"Error classifying task message: {e}")
+        # If there's an error, default to treating it as a task
+        return True
 
 def handle_telegram_message(message: Dict):
     """

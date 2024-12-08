@@ -10,3 +10,5 @@ pytest
 pytest-cov
 coverage
 colorama
+pyautogen
+guidance

@@ -62,7 +62,7 @@ def write_start_message():
          ░█▒▒▒░ ▓░░░░░█░░░▒▒▒░░░█░░░░▓░ ░▒▒░█            
     ░█░█░ ░█▒▒▒▓▒░▒░░░░░░░░░░░░░░░░░▒▓▓▒▒▒░█  ▒░░█░      
    █░░░█    █░▒▒▒▒▒▒▒▒▒░░░░░░░░░░▒▒▒▒▒▒▒▒░█   ░█░░░█     
-   █▓▒░░ ████▓██▒▒▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▒▒██▓████░░░▒▓█     
+   █▓▒░░ ████▓██▒▒▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▒▒██▓████░░░▒▓█     
    █▒▒▓▒░▒▒▒▒▓█▓▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▓█▒▒▒▒▒░▒▓▓▒▓     
     ▓▒██░░   ░░░░░░▓▓▒░░░░▓▓▓░░░░▒▓▓░░░░░░    ░██▒░      
     █░░░░░░░░░░░░▒▓█░▒░░░░▒▓▒░░░░▒░█▓░░░░░░░░░░░░░█      
@@ -83,16 +83,18 @@ Note: I am still in development, so please be patient with me! <3
 
 def process_tasks():
     """
-    Read and list active tasks from the tasks directory.
+    Process active tasks using the Society of Minds approach.
     
-    This is a placeholder implementation that will be expanded 
-    when processing logic is added from the think/ module.
+    Reads tasks from the active tasks directory and processes them 
+    through the Society of Minds agent.
     """
     from action.tasks import ACTIVE_TASKS_DIR
+    from think.societyofminds import SocietyOfMindAgent, user_proxy, manager
     import os
     import json
-    
-    print("Processing Active Tasks:")
+    import traceback
+
+    print("Processing Active Tasks with Society of Minds:")
     
     # Ensure the active tasks directory exists
     if not os.path.exists(ACTIVE_TASKS_DIR):
@@ -110,19 +112,39 @@ def process_tasks():
             try:
                 with open(task_file_path, 'r') as file:
                     task = json.load(file)
-                    
+                
+                # Create a Society of Minds agent for this task
+                society_of_mind_agent = SocietyOfMindAgent(
+                    f"task_{task_id}",
+                    chat_manager=manager,
+                    llm_config=manager.llm_config,
+                )
+                
                 # Print task details
-                print(f"Task ID: {task.get('id', 'N/A')}")
+                print(f"Processing Task ID: {task.get('id', 'N/A')}")
                 print(f"Title: {task.get('title', 'Untitled')}")
                 print(f"Description: {task.get('description', 'No description')}")
                 print(f"Priority: {task.get('priority', 'Unspecified')}")
                 print(f"Status: {task.get('status', 'Unknown')}")
-                print("---")
                 
+                # Process task through Society of Minds
+                try:
+                    user_proxy.initiate_chat(
+                        society_of_mind_agent, 
+                        message=json.dumps(task)
+                    )
+                except Exception as e:
+                    print(f"Error processing task with Society of Minds: {e}")
+                    print(traceback.format_exc())
+                
+                print("---")
                 active_tasks.append(task)
             
             except json.JSONDecodeError:
                 print(f"Error reading task file: {task_file_path}")
+            except Exception as e:
+                print(f"Unexpected error processing task: {e}")
+                print(traceback.format_exc())
     
     if not active_tasks:
         print("No active tasks found.")
