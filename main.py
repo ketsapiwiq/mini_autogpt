@@ -33,13 +33,8 @@ def main():
                         messages = telegram_utils.get_last_few_messages()
                         
                         # Process Telegram messages if any
-                        if messages:
-                            log(f"Received {len(messages)} Telegram messages")
-                            # Print out the last few messages
-                            for idx, msg in enumerate(messages, 1):
-                                log(f"Message {idx}: {msg}")
-                        else:
-                            log("No Telegram messages found.")
+                        for message in messages:
+                            task_id = handle_telegram_message({"text": message})
                     else:
                         log("Failed to initialize TelegramUtils.")
                 except Exception as e:
@@ -133,6 +128,10 @@ def process_tasks():
         print("No active tasks found.")
     
     return active_tasks
+
+def handle_telegram_message(message):
+    # This function is not implemented in the provided code
+    pass
 
 if __name__ == "__main__":
     main()

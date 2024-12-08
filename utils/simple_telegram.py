@@ -8,6 +8,7 @@ from telegram import Bot, Update
 from telegram.error import TimedOut
 from telegram.ext import CallbackContext
 from utils.log import log
+import time
 
 # Load environment variables from .env file
 load_dotenv()
@@ -75,111 +76,162 @@ class TelegramUtils:
             return
 
         self.api_key = api_key
-        self.chat_id = chat_id
-        self.load_conversation_history()
+        self.chat_id = str(chat_id)  # Ensure chat_id is a string
+        self.bot = None
+        self.last_processed_update_id = None
+        self._initialize_bot()
 
-    def get_last_few_messages(self):
-        """Interface method. Get the last few messages."""
+    def _initialize_bot(self):
+        """Initialize the Telegram bot with proper error handling."""
         try:
-            # Ensure conversation history is loaded
-            self.load_conversation_history()
-            
-            # Log the total number of messages in conversation history
-            log(f"Total messages in conversation history: {len(self.conversation_history)}")
-            
-            # Return last 10 messages or all if less than 10
-            last_messages = self.conversation_history[-10:]
-            
-            # Log details about retrieved messages
-            log(f"Retrieving last {len(last_messages)} messages")
-            for idx, msg in enumerate(last_messages, 1):
-                log(f"Message {idx}: {msg}")
-            
-            return last_messages
+            import telegram
+            self.bot = telegram.Bot(token=self.api_key)
         except Exception as e:
-            log(f"Error retrieving last messages: {e}")
-            log(traceback.format_exc())
+            log(f"Error initializing Telegram bot: {e}")
+            self.bot = None
+
+    async def _get_bot(self):
+        """Async method to get bot instance."""
+        if not self.bot:
+            self._initialize_bot()
+        return self.bot
+
+    def get_last_few_messages(self, limit=5):
+        """Fetch the last few messages directly from the Telegram API."""
+        try:
+            # Use run_async to handle the async method
+            updates = run_async(self._fetch_messages(limit))
+            return updates
+        except Exception as e:
+            log(f"Error fetching messages from Telegram API: {e}")
             return []
 
-    def get_previous_message_history(self):
-        """Interface method. Get the previous message history."""
+    async def _fetch_messages(self, limit=5):
+        """Async method to fetch messages from Telegram API."""
+        bot = await self._get_bot()
+        if not bot:
+            log("Telegram bot not initialized")
+            return []
+
         try:
-            if len(self.conversation_history) == 0:
-                return "There is no previous message history."
-
-            tokens = 0
-            if tokens > 1000:
-                log("Message history is over 1000 tokens. Summarizing...")
-                chunks = []
-                summaries = []
-                summarized_history = " ".join(summaries)
-                return summarized_history
-
-            return self.conversation_history
+            # Get updates with a limit to control the number of messages
+            updates = await bot.get_updates(limit=limit, timeout=1)
+            
+            # Filter messages for the specific chat
+            messages = [
+                update.message.text 
+                for update in updates 
+                if (update.message and 
+                    update.message.chat and 
+                    str(update.message.chat.id) == self.chat_id and 
+                    update.message.text)
+            ]
+            
+            # Update the last processed update ID
+            if updates:
+                self.last_processed_update_id = updates[-1].update_id
+            
+            return messages
         except Exception as e:
-            log(f"Error while getting previous message history: {e}")
-            log(traceback.format_exc())
-            exit(1)
+            log(f"Error in _fetch_messages: {e}")
+            return []
 
-    def load_conversation_history(self):
-        """Load the conversation history from a file."""
+    async def _poll_updates(self):
+        """
+        Async method to poll for updates with improved error handling 
+        and event loop management.
+        """
+        global response_queue
         try:
-            # Log the current working directory to help with file path debugging
-            log(f"Current working directory: {os.getcwd()}")
-            
-            # Attempt to load conversation history
-            with open("conversation_history.json", "r") as f:
-                self.conversation_history = json.load(f)
-            
-            # Log details about loaded conversation history
-            log(f"Loaded {len(self.conversation_history)} messages from conversation_history.json")
-        except FileNotFoundError:
-            # If the file doesn't exist, create it.
-            log("conversation_history.json not found. Creating empty conversation history.")
-            self.conversation_history = []
-        except json.JSONDecodeError:
-            # Handle potential JSON decoding errors
-            log("Error decoding conversation_history.json. Creating empty conversation history.")
-            self.conversation_history = []
-        except Exception as e:
-            # Catch any other unexpected errors
-            log(f"Unexpected error loading conversation history: {e}")
-            log(traceback.format_exc())
-            self.conversation_history = []
+            bot = await self._get_bot()
+            if not bot:
+                log("Telegram bot not initialized")
+                return None
 
-    def save_conversation_history(self):
-        """Save the conversation history to a file."""
-        with open("conversation_history.json", "w") as f:
-            json.dump(self.conversation_history, f)
+            log("Getting updates...")
+
+            # Get initial updates
+            last_update = await bot.get_updates(timeout=10)
+            
+            # Initialize last_update_id
+            last_update_id = last_update[-1].update_id if last_update else -1
+
+            while True:
+                try:
+                    # Get new updates
+                    updates = await bot.get_updates(offset=last_update_id + 1, timeout=30)
+                    
+                    for update in updates:
+                        # Check authorization
+                        if not self.is_authorized_user(update):
+                            continue
+
+                        # Process message
+                        if update.message and update.message.text:
+                            # Set response and add to conversation history
+                            response_queue = update.message.text
+                            self.add_to_conversation_history("User: " + response_queue)
+                            return response_queue
+
+                        # Update last_update_id
+                        last_update_id = max(last_update_id, update.update_id)
+
+                except asyncio.TimeoutError:
+                    log("Telegram update polling timed out")
+                    continue
+                except Exception as e:
+                    log(f"Error while polling updates: {e}")
+                    # Wait a bit before retrying to avoid rapid error loops
+                    await asyncio.sleep(5)
+
+                # Prevent tight looping
+                await asyncio.sleep(1)
+
+        except Exception as e:
+            log(f"Critical error in _poll_updates: {e}")
+            return None
+
+    def send_message(self, message):
+        """Interface method for sending a message."""
+        try:
+            # Add to conversation history
+            self.add_to_conversation_history("Sent: " + message)
+            
+            # Send message with ellipsis
+            self._send_message(message + "...")
+            return "Sent message successfully."
+        except Exception as e:
+            log(f"Error sending message: {e}")
+            return f"Failed to send message: {e}"
+
+    def ask_user(self, prompt):
+        """Interface Method for Auto-GPT.
+        Ask the user a question, return the answer"""
+        max_attempts = 3
+        for attempt in range(max_attempts):
+            try:
+                # Use run_async to handle the async method
+                answer = run_async(self.ask_user_async(prompt=prompt))
+                return answer
+            except Exception as e:
+                log(f"Telegram ask_user attempt {attempt + 1} failed: {e}")
+                if attempt == max_attempts - 1:
+                    return "User has not answered."
+                # Wait a bit before retrying
+                time.sleep(2)
 
     def add_to_conversation_history(self, message):
-        """Add a message to the conversation history and save it."""
-        self.conversation_history.append(message)
-        self.save_conversation_history()
+        """
+        Send a message to the Telegram chat instead of saving to file.
+        """
+        try:
+            run_async(self._send_message_async(message))
+        except Exception as e:
+            log(f"Error sending message to Telegram: {e}")
 
-    def poll_anyMessage(self):
-        print("Waiting for first message...")
-        return run_async(self.poll_anyMessage_async())
-
-    async def poll_anyMessage_async(self):
-        bot = Bot(token=self.api_key)
-        last_update = await bot.get_updates(timeout=30)
-        if len(last_update) > 0:
-            last_update_id = last_update[-1].update_id
-        else:
-            last_update_id = -1
-
-        while True:
-            try:
-                log("Waiting for first message...")
-                updates = await bot.get_updates(offset=last_update_id + 1, timeout=30)
-                for update in updates:
-                    if update.message:
-                        return update
-            except Exception as e:
-                log(f"Error while polling updates: {e}")
-
-            await asyncio.sleep(1)
+    def get_previous_message_history(self):
+        """Fetch previous message history from the Telegram API."""
+        return self.get_last_few_messages(limit=10)
 
     def is_authorized_user(self, update: Update):
         authorized = update.effective_user.id == int(self.chat_id)
@@ -254,76 +306,29 @@ class TelegramUtils:
         log("Response received from Telegram: " + response_text)
         return response_text
 
-    async def _poll_updates(self):
-        global response_queue
-        bot = await self.get_bot()
-        log("getting updates...")
+    def poll_anyMessage(self):
+        print("Waiting for first message...")
+        return run_async(self.poll_anyMessage_async())
 
-        last_update = await bot.get_updates(timeout=10)
+    async def poll_anyMessage_async(self):
+        bot = Bot(token=self.api_key)
+        last_update = await bot.get_updates(timeout=30)
         if len(last_update) > 0:
-            last_messages = []
-            for u in last_update:
-                if not self.is_authorized_user(u):
-                    continue
-                if u.message and u.message.text:
-                    last_messages.append(u.message.text)
-                else:
-                    log("no text in message in update: " + str(u))
-            last_messages = []
-            for u in last_update:
-                if not self.is_authorized_user(u):
-                    continue
-                if u.message:
-                    if u.message.text:
-                        last_messages.append(u.message.text)
-                    else:
-                        log("no text in message in update: " + str(u))
-            # itarate and check if last messages are already known, if not add to history
-            for message in last_messages:
-                self.add_to_conversation_history("User: " + message)
-
-            log("last messages: " + str(last_messages))
             last_update_id = last_update[-1].update_id
-
         else:
-            last_update_id = -11
+            last_update_id = -1
 
-        log("last update id: " + str(last_update_id))
-        log("Waiting for new messages...")
         while True:
             try:
+                log("Waiting for first message...")
                 updates = await bot.get_updates(offset=last_update_id + 1, timeout=30)
                 for update in updates:
-                    if self.is_authorized_user(update):
-                        if update.message and update.message.text:
-                            response_queue = update.message.text
-                            self.add_to_conversation_history("User: " + response_queue)
-                            return response_queue
-
-                    last_update_id = max(last_update_id, update.update_id)
-            except TimedOut:
-                continue
+                    if update.message:
+                        return update
             except Exception as e:
                 log(f"Error while polling updates: {e}")
 
             await asyncio.sleep(1)
-
-    def send_message(self, message):
-        """Interface method for sending a message."""
-        self.add_to_conversation_history("Sent: " + message)
-        self._send_message(message + "...")
-        return "Sent message successfully."
-
-    def ask_user(self, prompt):
-        """Interface Method for Auto-GPT.
-        Ask the user a question, return the answer"""
-        answer = "User has not answered."
-        try:
-            answer = run_async(self.ask_user_async(prompt=prompt))
-        except TimedOut:
-            log("Telegram timeout error, trying again...")
-            answer = self.ask_user(prompt=prompt)
-        return answer
 
 from typing import Dict
 from utils.task_tree import create_task_from_json
