@@ -22,6 +22,7 @@ code_interpreter = autogen.UserProxyAgent(
         "work_dir": "coding",
         "use_docker": False,
     },
+    max_consecutive_auto_reply=5,
     default_auto_reply="",
     is_termination_msg=lambda x: x.get("content", "").find("TERMINATE") >= 0,
 )
