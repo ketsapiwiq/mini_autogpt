@@ -1,0 +1,1 @@
+ChatResult(chat_id=None, chat_history=[{'content': 'Solve a complex reasoning problem', 'role': 'assistant', 'name': 'society_of_mind'}], summary='Solve a complex reasoning problem', cost={'usage_including_cached_inference': {'total_cost': 0}, 'usage_excluding_cached_inference': {'total_cost': 0}}, human_input=[])

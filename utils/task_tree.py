@@ -144,47 +144,78 @@ def update_task_results(task_data, results, folder_path="tasks"):
     """
     Updates a task file with the results/insights from thinking about it.
     
+    Enhanced to provide more comprehensive result tracking and logging.
+    
     Args:
         task_data (dict): The original task data
-        results (str): The thinking results to add
-        folder_path (str): The path to the tasks folder
+        results (Union[str, dict, list]): The thinking results to add
+        folder_path (str, optional): The path to the tasks folder
     
     Returns:
-        bool: True if update was successful, False otherwise
+        dict: Updated task information with processing metadata
     """
-    log(f"Updating task results in folder: {folder_path}")
-    log(f"Task data: {task_data}")
+    try:
+        # Validate input
+        if not task_data or not isinstance(task_data, dict):
+            log(f"Invalid task data: {task_data}")
+            return {"success": False, "error": "Invalid task data"}
+        
+        # Prepare results for storage
+        if not isinstance(results, (str, dict, list)):
+            results = str(results)
+        
+        # Add processing timestamp
+        processing_timestamp = datetime.now().isoformat()
+        
+        # Create a comprehensive result object
+        result_entry = {
+            "timestamp": processing_timestamp,
+            "raw_results": results,
+            "processed": False,
+            "insights": {},
+            "status": "pending"
+        }
+        
+        # Try to extract insights if results is a dictionary
+        if isinstance(results, dict):
+            result_entry["insights"] = results
+            result_entry["processed"] = True
+            result_entry["status"] = "completed"
+        
+        # Update task data
+        if "results_history" not in task_data:
+            task_data["results_history"] = []
+        
+        task_data["results_history"].append(result_entry)
+        task_data["last_processed"] = processing_timestamp
+        
+        # Determine task status
+        if result_entry["status"] == "completed":
+            task_data["status"] = "completed"
+        
+        # Determine file path
+        if task_data.get("status") == "completed":
+            file_path = os.path.join(COMPLETED_TASKS_DIR, f"{task_data['id']}.json")
+        else:
+            file_path = os.path.join(ACTIVE_TASKS_DIR, f"{task_data['id']}.json")
+        
+        # Write updated task data
+        with open(file_path, 'w') as f:
+            json.dump(task_data, f, indent=2)
+        
+        log(f"Task {task_data.get('id', 'unknown')} updated with results")
+        
+        return {
+            "success": True, 
+            "task_id": task_data.get('id'),
+            "status": task_data.get('status'),
+            "processed_at": processing_timestamp
+        }
     
-    if not os.path.isabs(folder_path):
-        folder_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), folder_path)
-        log(f"Using absolute folder path: {folder_path}")
-    
-    # Find the task file that matches this task
-    log("Searching for matching task file...")
-    for filename in os.listdir(folder_path):
-        if filename.endswith('.json'):
-            file_path = os.path.join(folder_path, filename)
-            log(f"Checking file: {file_path}")
-            try:
-                with open(file_path, 'r') as f:
-                    current_task = json.load(f)
-                
-                # Check if this is the matching task
-                if (current_task.get('task') == task_data.get('task') and 
-                    current_task.get('priority') == task_data.get('priority')):
-                    
-                    log("Found matching task, updating with results...")
-                    # Update the task with results
-                    current_task['last_thoughts'] = results
-                    current_task['last_updated'] = datetime.now().isoformat()
-                    
-                    # Write back to file
-                    with open(file_path, 'w') as f:
-                        json.dump(current_task, f, indent=4)
-                    log("Task updated successfully")
-                    return True
-            except (json.JSONDecodeError, OSError) as e:
-                log(f"Error updating task file {file_path}: {e}")
-    
-    log("No matching task file found")
-    return False
+    except Exception as e:
+        log(f"Error updating task results: {e}")
+        return {
+            "success": False, 
+            "error": str(e),
+            "task_id": task_data.get('id')
+        }

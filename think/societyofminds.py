@@ -59,3 +59,20 @@ user_proxy = autogen.UserProxyAgent(
     default_auto_reply="",
     is_termination_msg=lambda x: True,
 )
+
+# Invoke Society of Mind Agent
+result = society_of_mind_agent.initiate_chat(user_proxy, message="Solve a complex reasoning problem")
+
+# Add post-processing or logging after invoking societyofminds()
+print("Society of Mind Agent Result:")
+print(result)
+
+# Optional: Save the result to a file
+with open('societyofminds_result.txt', 'w') as f:
+    f.write(str(result))
+
+# Optional: Perform additional analysis or actions based on the result
+if result:
+    print("Society of Mind Agent completed its task successfully.")
+else:
+    print("Society of Mind Agent did not complete the task.")
