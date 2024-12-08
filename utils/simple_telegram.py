@@ -80,8 +80,26 @@ class TelegramUtils:
 
     def get_last_few_messages(self):
         """Interface method. Get the last few messages."""
-        self.load_conversation_history()
-        return self.conversation_history[-10:]
+        try:
+            # Ensure conversation history is loaded
+            self.load_conversation_history()
+            
+            # Log the total number of messages in conversation history
+            log(f"Total messages in conversation history: {len(self.conversation_history)}")
+            
+            # Return last 10 messages or all if less than 10
+            last_messages = self.conversation_history[-10:]
+            
+            # Log details about retrieved messages
+            log(f"Retrieving last {len(last_messages)} messages")
+            for idx, msg in enumerate(last_messages, 1):
+                log(f"Message {idx}: {msg}")
+            
+            return last_messages
+        except Exception as e:
+            log(f"Error retrieving last messages: {e}")
+            log(traceback.format_exc())
+            return []
 
     def get_previous_message_history(self):
         """Interface method. Get the previous message history."""
@@ -106,10 +124,27 @@ class TelegramUtils:
     def load_conversation_history(self):
         """Load the conversation history from a file."""
         try:
+            # Log the current working directory to help with file path debugging
+            log(f"Current working directory: {os.getcwd()}")
+            
+            # Attempt to load conversation history
             with open("conversation_history.json", "r") as f:
                 self.conversation_history = json.load(f)
+            
+            # Log details about loaded conversation history
+            log(f"Loaded {len(self.conversation_history)} messages from conversation_history.json")
         except FileNotFoundError:
             # If the file doesn't exist, create it.
+            log("conversation_history.json not found. Creating empty conversation history.")
+            self.conversation_history = []
+        except json.JSONDecodeError:
+            # Handle potential JSON decoding errors
+            log("Error decoding conversation_history.json. Creating empty conversation history.")
+            self.conversation_history = []
+        except Exception as e:
+            # Catch any other unexpected errors
+            log(f"Unexpected error loading conversation history: {e}")
+            log(traceback.format_exc())
             self.conversation_history = []
 
     def save_conversation_history(self):

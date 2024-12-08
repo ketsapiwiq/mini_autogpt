@@ -17,17 +17,36 @@ def main():
         
         # If no tasks, wait for Telegram messages
         if not tasks:
-            from utils.simple_telegram import TelegramUtils
-            telegram_utils = TelegramUtils.get_instance()
+            from utils.simple_telegram import TelegramUtils, get_telegram_config
             
-            if telegram_utils:
-                log("No active tasks. Waiting for Telegram messages...")
-                messages = telegram_utils.get_last_few_messages()
-                
-                # Process Telegram messages if any
-                if messages:
-                    log(f"Received {len(messages)} Telegram messages")
-                    # TODO: Add logic to process Telegram messages
+            # Debug: Check Telegram configuration
+            api_key, chat_id = get_telegram_config()
+            log(f"Telegram Config - API Key: {bool(api_key)}, Chat ID: {bool(chat_id)}")
+            
+            # Ensure we have a valid configuration
+            if api_key and chat_id:
+                try:
+                    telegram_utils = TelegramUtils.get_instance(api_key, chat_id)
+                    
+                    if telegram_utils:
+                        log("Retrieving Telegram messages...")
+                        messages = telegram_utils.get_last_few_messages()
+                        
+                        # Process Telegram messages if any
+                        if messages:
+                            log(f"Received {len(messages)} Telegram messages")
+                            # Print out the last few messages
+                            for idx, msg in enumerate(messages, 1):
+                                log(f"Message {idx}: {msg}")
+                        else:
+                            log("No Telegram messages found.")
+                    else:
+                        log("Failed to initialize TelegramUtils.")
+                except Exception as e:
+                    log(f"Error retrieving Telegram messages: {e}")
+                    log(traceback.format_exc())
+            else:
+                log("Telegram configuration is incomplete.")
         
         time.sleep(1)  # Prevent tight loop
 
