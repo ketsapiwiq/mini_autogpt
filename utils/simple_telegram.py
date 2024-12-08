@@ -286,6 +286,7 @@ from utils.task_tree import create_task_from_json
 from autogen import Agent, AssistantAgent, UserProxyAgent, config_list_from_json
 from guidance import models
 import re
+from action.tasks import task_manager
 
 def is_message_a_task(message: Dict) -> bool:
     """
@@ -365,40 +366,96 @@ def handle_telegram_message(message: Dict):
     Returns:
         str or None: Created task ID or None
     """
-    # Ensure message is a dictionary with text
-    if not isinstance(message, dict) or 'text' not in message:
-        log("Invalid message format")
-        return None
+    # Add message to conversation history
+    telegram_utils = TelegramUtils.get_instance()
+    if telegram_utils:
+        telegram_utils.add_to_conversation_history(f"Received: {message.get('text', '')}")
 
-    # Get Telegram utility instance
+    # Check if the message is a task
+    if is_message_a_task(message):
+        # Prepare task details
+        task_details = {
+            'title': f"Telegram Message: {message.get('text', '')[:50]}...",
+            'description': message.get('text', ''),
+            'source': 'telegram',
+            'status': 'in_progress',
+            'priority': 1,  # High priority for user messages
+            'metadata': {
+                'original_message': message
+            }
+        }
+
+        # Create task and get task ID
+        task_id = task_manager.create_task(task_details)
+
+        # Notify Telegram message is read
+        telegram_utils.send_message(f"Message received and processed. Task ID: {task_id}")
+
+        log(f"Created task {task_id} for Telegram message: {message.get('text', '')}")
+
+        return task_id
+
+    return None
+
+def telegram_task_commands(update: Update, context: CallbackContext):
+    """
+    Handle Telegram bot commands related to task management.
+    
+    Commands:
+    - /tasks: List active tasks
+    - /task_history: Show task history
+    - /cancel_task <task_id>: Cancel a specific task
+    - /pause_task <task_id>: Pause a specific task
+    """
+    command = update.message.text.split()[0]
+    args = update.message.text.split()[1:] if len(update.message.text.split()) > 1 else []
+    
     telegram_utils = TelegramUtils.get_instance()
     if not telegram_utils:
-        log("Failed to get Telegram utils instance")
-        return None
+        return
 
-    # 1. Add to conversation history
-    telegram_utils.add_to_conversation_history(message)
-    
-    # Save to JSONL file
-    conv_history_path = os.path.join(os.path.dirname(__file__), '..', 'conv_history.jsonl')
-    with open(conv_history_path, 'a') as f:
-        f.write(json.dumps(message) + '\n')
+    if command == '/tasks':
+        active_tasks = task_manager.get_active_tasks()
+        if active_tasks:
+            response = "🔧 Active Tasks:\n"
+            for task in active_tasks:
+                response += (f"Task ID: {task['id']}\n"
+                             f"Title: {task.get('title', 'No title')}\n"
+                             f"Status: {task['status']}\n"
+                             f"Description: {task.get('description', 'No description')}\n\n")
+        else:
+            response = "No active tasks at the moment."
+        
+        telegram_utils.send_message(response)
 
-    # 2. Create task from message
-    task_id = create_task_from_json({
-        "title": f"Telegram Message: {message['text'][:50]}...",
-        "description": f"Telegram message content:\n\n{message['text']}",
-        "priority": 1,  # High priority for user messages
-        "source": "telegram",
-        "metadata": {
-            "original_message": message
-        }
-    })
+    elif command == '/task_history':
+        task_history = task_manager.get_task_history()
+        if task_history:
+            response = "📋 Task History:\n"
+            for task in task_history[-10:]:  # Show last 10 tasks
+                response += (f"Task ID: {task['id']}\n"
+                             f"Title: {task.get('title', 'No title')}\n"
+                             f"Status: {task['status']}\n"
+                             f"Description: {task.get('description', 'No description')}\n\n")
+        else:
+            response = "No task history available."
+        
+        telegram_utils.send_message(response)
 
-    # 3. Notify Telegram message is read
-    telegram_utils.send_message(f"Message received and processed. Task ID: {task_id}")
+    elif command == '/cancel_task':
+        if not args:
+            telegram_utils.send_message("Please provide a task ID to cancel.")
+            return
+        
+        task_id = args[0]
+        task_manager.cancel_task(task_id)
+        telegram_utils.send_message(f"Task {task_id} has been cancelled.")
 
-    # Log the task creation
-    log(f"Created task {task_id} for Telegram message: {message['text']}")
-
-    return task_id
+    elif command == '/pause_task':
+        if not args:
+            telegram_utils.send_message("Please provide a task ID to pause.")
+            return
+        
+        task_id = args[0]
+        task_manager.pause_task(task_id)
+        telegram_utils.send_message(f"Task {task_id} has been paused.")
