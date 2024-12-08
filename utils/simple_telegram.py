@@ -10,6 +10,7 @@ from telegram.ext import CallbackContext
 from utils.log import log
 import time
 import functools
+import traceback
 
 # Load environment variables from .env file
 load_dotenv()
@@ -192,11 +193,62 @@ class TelegramUtils:
         return self.conversation_history
 
     def get_last_few_messages(self, limit=5):
-        """Fetch the last few messages from conversation history."""
-        return self.conversation_history[-limit:]
+        """Fetch the last few messages directly from the Telegram API."""
+        try:
+            log(f"Attempting to fetch {limit} messages from Telegram API")
+            log(f"Bot initialized: {self.bot is not None}")
+            log(f"API Key: {bool(self.api_key)}")
+            log(f"Chat ID: {self.chat_id}")
+            
+            # Use run_async to handle the async method
+            messages = run_async(self._fetch_messages(limit))
+            
+            log(f"Messages retrieved: {len(messages)}")
+            return messages
+        except Exception as e:
+            log(f"Critical error fetching messages from Telegram API: {e}")
+            log(f"Traceback: {traceback.format_exc()}")
+            return []
+
+    async def _fetch_messages(self, limit=5):
+        """Async method to fetch messages from Telegram API."""
+        try:
+            # Ensure we have a fresh bot instance
+            bot = Bot(token=self.api_key)
+            
+            log(f"Fetching updates with limit {limit}")
+            
+            # Get updates with a limit to control the number of messages
+            updates = await bot.get_updates(limit=limit, timeout=1)
+            
+            log(f"Total updates received: {len(updates)}")
+            
+            # Log details of each update for debugging
+            for update in updates:
+                log(f"Update details: {update}")
+                if update.message:
+                    log(f"Message chat ID: {update.message.chat.id}")
+                    log(f"Message text: {update.message.text}")
+            
+            # Filter messages for the specific chat
+            messages = [
+                update.message.text 
+                for update in updates 
+                if (update.message and 
+                    update.message.chat and 
+                    str(update.message.chat.id) == self.chat_id and 
+                    update.message.text)
+            ]
+            
+            log(f"Filtered messages: {messages}")
+            return messages
+        except Exception as e:
+            log(f"Error in _fetch_messages: {e}")
+            log(f"Traceback: {traceback.format_exc()}")
+            return []
 
     def get_previous_message_history(self, limit=10):
-        """Fetch previous message history."""
+        """Fetch previous message history from the Telegram API."""
         return self.get_last_few_messages(limit)
 
     def is_authorized_user(self, update: Update):
