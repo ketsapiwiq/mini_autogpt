@@ -1,0 +1,4 @@
+pytest
+unittest
+autogen
+# Add any other dependencies specific to the tests
