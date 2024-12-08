@@ -8,7 +8,7 @@ from action.tasks import (
     TASKS_DIR,
     ACTIVE_TASKS_DIR,
     COMPLETED_TASKS_DIR,
-    ensure_task_directories,
+    TaskManager,  # Import TaskManager instead of ensure_task_directories
     create_task as create_base_task,
     get_first_task,
     create_task,
@@ -122,7 +122,7 @@ def get_highest_priority_task() -> Optional[Dict]:
     log("Retrieving highest priority pending task")
     
     # Ensure task directories exist
-    ensure_task_directories()
+    TaskManager().ensure_task_directories()  # Use TaskManager instead of ensure_task_directories
     
     # List all active tasks
     active_tasks = []

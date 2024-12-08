@@ -90,6 +90,7 @@ def process_tasks():
     """
     from action.tasks import ACTIVE_TASKS_DIR
     from think.societyofminds import SocietyOfMindAgent, user_proxy, manager
+    from utils.simple_telegram import TelegramUtils, get_telegram_config
     import os
     import json
     import traceback
@@ -103,6 +104,10 @@ def process_tasks():
     
     active_tasks = []
     
+    # Get Telegram utils for sending messages
+    api_key, chat_id = get_telegram_config()
+    telegram_utils = TelegramUtils.get_instance(api_key, chat_id) if api_key and chat_id else None
+    
     # Iterate through task directories in the active tasks folder
     for task_id in os.listdir(ACTIVE_TASKS_DIR):
         task_file_path = os.path.join(ACTIVE_TASKS_DIR, task_id, "task.json")
@@ -112,6 +117,17 @@ def process_tasks():
             try:
                 with open(task_file_path, 'r') as file:
                     task = json.load(file)
+                
+                # Send Telegram message about current task
+                if telegram_utils:
+                    task_message = (
+                        f"🤖 Starting to work on task:\n"
+                        f"ID: {task.get('id', 'N/A')}\n"
+                        f"Title: {task.get('title', 'Untitled')}\n"
+                        f"Description: {task.get('description', 'No description')}\n"
+                        f"Priority: {task.get('priority', 'Unspecified')}"
+                    )
+                    telegram_utils.send_message(task_message)
                 
                 # Create a Society of Minds agent for this task
                 society_of_mind_agent = SocietyOfMindAgent(
@@ -136,6 +152,10 @@ def process_tasks():
                 except Exception as e:
                     print(f"Error processing task with Society of Minds: {e}")
                     print(traceback.format_exc())
+                    
+                    # Send error message to Telegram
+                    if telegram_utils:
+                        telegram_utils.send_message(f"❌ Error processing task {task_id}: {str(e)}")
                 
                 print("---")
                 active_tasks.append(task)

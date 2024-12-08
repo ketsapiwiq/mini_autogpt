@@ -10,7 +10,6 @@ from telegram.ext import CallbackContext
 from utils.log import log
 import time
 import functools
-import traceback
 
 # Load environment variables from .env file
 load_dotenv()
@@ -114,20 +113,52 @@ class TelegramUtils:
                     return "User has not answered."
                 time.sleep(2)
 
-    async def ask_user_async(self, prompt, speak=False):
-        """Async method to ask user a question and wait for response"""
+    async def ask_user_async(self, prompt, speak=False, task_id=None):
+        """
+        Async method to ask user a question and wait for response
+        
+        Args:
+            prompt (str): Question or prompt to send to user
+            speak (bool, optional): Whether to use text-to-speech
+            task_id (str, optional): Current task ID for interruption support
+        
+        Returns:
+            str: User's response
+        """
         log("Asking user: " + prompt)
         await self._send_message_async(message=prompt, speak=speak)
         self.add_to_conversation_history("AI: " + prompt)
         
         log("Waiting for response on Telegram chat...")
-        response = await self._wait_for_user_response()
+        response = await self._wait_for_user_response(task_id=task_id)
         
         log(f"Response received from Telegram: {response}")
-        return response
+        
+        # Handle different response types
+        if response['type'] == 'message':
+            return response['content']
+        elif response['type'] == 'task_interrupt':
+            # Raise a custom exception for task interruption
+            raise TaskInterruptionException(
+                command=response['command'], 
+                task_id=response['task_id']
+            )
+        elif response['type'] == 'timeout':
+            return "No response received."
+        elif response['type'] == 'error':
+            return "Error in communication."
 
-    async def _wait_for_user_response(self, timeout=300):
-        """Wait for a user response with a timeout"""
+    async def _wait_for_user_response(self, timeout=300, task_id=None):
+        """
+        Wait for a user response with a timeout and support task interruption.
+        
+        Args:
+            timeout (int): Maximum time to wait for response in seconds
+            task_id (str, optional): Current task ID to support interruption
+        
+        Returns:
+            dict: Response with type and content
+        """
         bot = Bot(token=self.api_key)
         last_update_id = None
 
@@ -150,9 +181,60 @@ class TelegramUtils:
                             update.message.text and 
                             str(update.message.chat.id) == self.chat_id):
                             
-                            response = update.message.text
-                            self.add_to_conversation_history("User: " + response)
-                            return response
+                            response_text = update.message.text
+                            self.add_to_conversation_history("User: " + response_text)
+
+                            # Handle task interruption commands
+                            if response_text.startswith('/'):
+                                command_parts = response_text.split()
+                                command = command_parts[0]
+                                
+                                if command == '/cancel_task' and task_id:
+                                    # Cancel current task
+                                    from action.tasks import task_manager
+                                    task_manager.cancel_task(task_id)
+                                    await self._send_message_async(f"Task {task_id} has been cancelled.")
+                                    return {
+                                        'type': 'task_interrupt', 
+                                        'command': 'cancel', 
+                                        'task_id': task_id
+                                    }
+                                
+                                elif command == '/pause_task' and task_id:
+                                    # Pause current task
+                                    from action.tasks import task_manager
+                                    task_manager.pause_task(task_id)
+                                    await self._send_message_async(f"Task {task_id} has been paused.")
+                                    return {
+                                        'type': 'task_interrupt', 
+                                        'command': 'pause', 
+                                        'task_id': task_id
+                                    }
+                                
+                                elif command == '/status' and task_id:
+                                    # Request task status
+                                    from action.tasks import task_manager
+                                    tasks = task_manager.get_active_tasks()
+                                    current_task = next((t for t in tasks if t['id'] == task_id), None)
+                                    
+                                    if current_task:
+                                        status_message = (
+                                            f"📋 Task Status:\n"
+                                            f"ID: {current_task['id']}\n"
+                                            f"Title: {current_task.get('title', 'N/A')}\n"
+                                            f"Status: {current_task.get('status', 'Unknown')}\n"
+                                            f"Description: {current_task.get('description', 'No description')}"
+                                        )
+                                        await self._send_message_async(status_message)
+                                    
+                                    # Continue waiting for response
+                                    continue
+
+                            # If not a command, return as a regular response
+                            return {
+                                'type': 'message', 
+                                'content': response_text
+                            }
 
                         # Update last_update_id
                         if update.update_id:
@@ -163,11 +245,17 @@ class TelegramUtils:
                     await asyncio.sleep(2)
 
             log("Timeout waiting for user response")
-            return "No response received."
+            return {
+                'type': 'timeout', 
+                'content': "No response received."
+            }
 
         except Exception as e:
             log(f"Critical error in waiting for response: {e}")
-            return "Error in communication."
+            return {
+                'type': 'error', 
+                'content': "Error in communication."
+            }
 
     async def _send_message_async(self, message, speak=False):
         """Send a message to Telegram, handling long messages"""
@@ -459,3 +547,8 @@ def telegram_task_commands(update: Update, context: CallbackContext):
         task_id = args[0]
         task_manager.pause_task(task_id)
         telegram_utils.send_message(f"Task {task_id} has been paused.")
+
+class TaskInterruptionException(Exception):
+    def __init__(self, command, task_id):
+        self.command = command
+        self.task_id = task_id
