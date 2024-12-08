@@ -193,21 +193,34 @@ class TelegramUtils:
         return self.conversation_history
 
     def get_last_few_messages(self, limit=5):
-        """Fetch the last few messages directly from the Telegram API."""
+        """
+        Fetch the last few messages from Telegram API and process them.
+        
+        Args:
+            limit (int, optional): Number of messages to retrieve. Defaults to 5.
+        
+        Returns:
+            list: Processed messages
+        """
         try:
-            log(f"Attempting to fetch {limit} messages from Telegram API")
-            log(f"Bot initialized: {self.bot is not None}")
-            log(f"API Key: {bool(self.api_key)}")
-            log(f"Chat ID: {self.chat_id}")
-            
-            # Use run_async to handle the async method
+            # Fetch messages asynchronously
             messages = run_async(self._fetch_messages(limit))
             
-            log(f"Messages retrieved: {len(messages)}")
-            return messages
+            # Process each message
+            processed_messages = []
+            for message in messages:
+                # Ensure message is a dictionary with text
+                if isinstance(message, dict) and 'text' in message:
+                    # Process the message (add to history, create task, notify)
+                    task_id = handle_telegram_message(message)
+                    
+                    # Add to processed messages list
+                    processed_messages.append(message)
+            
+            return processed_messages
         except Exception as e:
-            log(f"Critical error fetching messages from Telegram API: {e}")
-            log(f"Traceback: {traceback.format_exc()}")
+            log(f"Error in get_last_few_messages: {e}")
+            log(traceback.format_exc())
             return []
 
     async def _fetch_messages(self, limit=5):
@@ -232,7 +245,7 @@ class TelegramUtils:
             
             # Filter messages for the specific chat
             messages = [
-                update.message.text 
+                update.message.to_dict() 
                 for update in updates 
                 if (update.message and 
                     update.message.chat and 
@@ -271,23 +284,66 @@ class TelegramUtils:
 from typing import Dict
 from utils.task_tree import create_task_from_json
 
-def handle_telegram_message(message: Dict) -> str:
+def is_message_a_task(message: Dict) -> bool:
     """
-    Create a new task from an incoming Telegram message using JSON structure.
-    Returns the created task ID
+    Placeholder function to determine if a message represents a task.
+    Currently always returns True.
+    
+    Args:
+        message (Dict): Telegram message dictionary
+    
+    Returns:
+        bool: Always True for now
     """
-    # Extract message content
-    text = message.get("text", "")
+    return True
 
-    # Create high priority task for telegram messages
-    task_data = {
-        "title": f"Process Telegram message: {text[:50]}...",
-        "description": f"Analyze and respond to Telegram message:\n\n{text}",
+def handle_telegram_message(message: Dict):
+    """
+    Process a Telegram message by:
+    1. Adding to conversation history
+    2. Creating a task
+    3. Notifying Telegram the message is read
+
+    Args:
+        message (Dict): Telegram message dictionary
+
+    Returns:
+        str or None: Created task ID or None
+    """
+    # Ensure message is a dictionary with text
+    if not isinstance(message, dict) or 'text' not in message:
+        log("Invalid message format")
+        return None
+
+    # Get Telegram utility instance
+    telegram_utils = TelegramUtils.get_instance()
+    if not telegram_utils:
+        log("Failed to get Telegram utils instance")
+        return None
+
+    # 1. Add to conversation history
+    telegram_utils.add_to_conversation_history(message)
+    
+    # Save to JSONL file
+    conv_history_path = os.path.join(os.path.dirname(__file__), '..', 'conv_history.jsonl')
+    with open(conv_history_path, 'a') as f:
+        f.write(json.dumps(message) + '\n')
+
+    # 2. Create task from message
+    task_id = create_task_from_json({
+        "title": f"Telegram Message: {message['text'][:50]}...",
+        "description": f"Telegram message content:\n\n{message['text']}",
         "priority": 1,  # High priority for user messages
         "source": "telegram",
-        "subtasks": []
-    }
+        "metadata": {
+            "original_message": message
+        }
+    })
 
-    task_id = create_task_from_json(task_data)
+    # 3. Notify Telegram message is read
+    telegram_utils.send_message(f"Message received and processed. Task ID: {task_id}")
+
+    # Log the task creation
+    log(f"Created task {task_id} for Telegram message: {message['text']}")
 
     return task_id
