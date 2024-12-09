@@ -149,6 +149,10 @@ def process_tasks():
                         society_of_mind_agent, 
                         message=json.dumps(task)
                     )
+                    
+                    # Mark task as completed after successful processing
+                    from action.tasks import task_manager
+                    task_manager.update_task_status(task_id, 'completed')
                 except Exception as e:
                     print(f"Error processing task with Society of Minds: {e}")
                     print(traceback.format_exc())

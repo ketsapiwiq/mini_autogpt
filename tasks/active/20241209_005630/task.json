@@ -1,0 +1,32 @@
+{
+  "id": "20241209_005630",
+  "title": "Yo",
+  "description": "Yo",
+  "priority": 1,
+  "status": "in_progress",
+  "source": "telegram",
+  "created_at": "2024-12-09T00:56:30.763647",
+  "updated_at": "2024-12-09T00:56:30.763652",
+  "metadata": {
+    "original_message": {
+      "channel_chat_created": false,
+      "delete_chat_photo": false,
+      "group_chat_created": false,
+      "supergroup_chat_created": false,
+      "text": "Yo",
+      "chat": {
+        "first_name": "Hadrien",
+        "id": 203648639,
+        "type": "private"
+      },
+      "date": 1733657111,
+      "message_id": 129,
+      "from": {
+        "first_name": "Hadrien",
+        "id": 203648639,
+        "is_bot": false,
+        "language_code": "fr"
+      }
+    }
+  }
+}
