@@ -1,6 +1,5 @@
 import os
 import json
-import uuid
 from datetime import datetime
 from typing import Dict, List, Optional
 from utils.log import log
@@ -8,80 +7,11 @@ from action.tasks import (
     TASKS_DIR,
     ACTIVE_TASKS_DIR,
     COMPLETED_TASKS_DIR,
-    TaskManager,  # Import TaskManager instead of ensure_task_directories
-    create_task as create_base_task,
-    get_first_task,
-    create_task,
+    TaskManager,
 )
 
 # Global variable to store the currently active task ID
 _active_task_id = None
-
-def create_task_from_json(task_data: Dict) -> str:
-    """Create a new task from JSON data"""
-    log(f"Creating task from JSON: {task_data}")
-    
-    # Extract required fields with defaults
-    title = task_data.get("title", "Untitled Task")
-    description = task_data.get("description", "No description provided")
-    priority = task_data.get("priority", 3)
-    source = task_data.get("source", "unknown")
-    
-    return create_base_task(
-        title=title,
-        description=description,
-        priority=priority,
-        source=source
-    )
-
-def get_task(task_id: str) -> Dict:
-    """Get task data by ID"""
-    log(f"Retrieving task data for ID: {task_id}")
-    task_file = os.path.join(ACTIVE_TASKS_DIR, f"{task_id}.json")
-    if not os.path.exists(task_file):
-        task_file = os.path.join(COMPLETED_TASKS_DIR, f"{task_id}.json")
-    
-    with open(task_file) as f:
-        return json.load(f)
-
-def update_task_status(task_id: str, status: str, results: Optional[Dict] = None):
-    """Update task status and optionally add results"""
-    log(f"Updating task status for ID: {task_id} to {status}")
-    task_file = os.path.join(ACTIVE_TASKS_DIR, f"{task_id}.json")
-    
-    with open(task_file) as f:
-        task_data = json.load(f)
-    
-    task_data["status"] = status
-    if results:
-        task_data["results"] = results
-    
-    if status == "completed":
-        # Move to completed directory
-        log(f"Moving task to completed directory: {task_id}")
-        target_file = os.path.join(COMPLETED_TASKS_DIR, f"{task_id}.json")
-        os.makedirs(os.path.dirname(target_file), exist_ok=True)
-        with open(target_file, "w") as f:
-            json.dump(task_data, f, indent=2)
-        os.remove(task_file)
-    else:
-        with open(task_file, "w") as f:
-            json.dump(task_data, f, indent=2)
-
-def add_thought(task_id: str, thought: str):
-    """Add a thought to the task's thought process"""
-    log(f"Adding thought to task ID: {task_id}")
-    task_file = os.path.join(ACTIVE_TASKS_DIR, f"{task_id}.json")
-    
-    with open(task_file) as f:
-        task_data = json.load(f)
-    
-    if "thoughts" not in task_data:
-        task_data["thoughts"] = []
-    task_data["thoughts"].append(thought)
-    
-    with open(task_file, "w") as f:
-        json.dump(task_data, f, indent=2)
 
 def get_active_task() -> Optional[Dict]:
     """Get the currently active task"""
@@ -93,58 +23,41 @@ def get_active_task() -> Optional[Dict]:
             _active_task_id = None
     return None
 
-def create_subtask(parent_id: str, title: str, description: str, priority: Optional[int] = None) -> str:
-    """Create a subtask under a parent task"""
-    parent_task = get_task(parent_id)
-    if not priority:
-        priority = parent_task.get("priority", 3)
-    
-    subtask_id = create_task(
-        title=title,
-        description=description,
-        priority=priority
-    )
-    
-    # Link subtask to parent
-    task_file = os.path.join(ACTIVE_TASKS_DIR, f"{subtask_id}.json")
-    with open(task_file) as f:
-        task_data = json.load(f)
-    
-    task_data["parent_id"] = parent_id
-    
-    with open(task_file, "w") as f:
-        json.dump(task_data, f, indent=2)
-    
-    return subtask_id
+def get_task(task_id: str) -> Dict:
+    """Get task data by ID"""
+    task_manager = TaskManager.get_instance()
+    return task_manager.get_task_by_id(task_id)
 
 def get_highest_priority_task() -> Optional[Dict]:
     """Get the highest priority pending task"""
-    log("Retrieving highest priority pending task")
-    
-    # Ensure task directories exist
-    TaskManager().ensure_task_directories()  # Use TaskManager instead of ensure_task_directories
-    
-    # List all active tasks
-    active_tasks = []
-    for filename in os.listdir(ACTIVE_TASKS_DIR):
-        if filename.endswith(".json"):
-            task_file = os.path.join(ACTIVE_TASKS_DIR, filename)
-            with open(task_file) as f:
-                task_data = json.load(f)
-                if task_data.get("status", "pending") == "pending":
-                    active_tasks.append(task_data)
-    
-    if not active_tasks:
-        return None
-    
-    # Sort by priority (lower number = higher priority)
-    return sorted(active_tasks, key=lambda x: x.get("priority", 3))[0]
+    task_manager = TaskManager.get_instance()
+    return task_manager.get_highest_priority_task()
 
-def update_task_results(task_data, results, folder_path="tasks"):
+def create_subtask(parent_id: str, title: str, description: str, priority: Optional[int] = None) -> str:
+    """Create a subtask under a parent task"""
+    task_manager = TaskManager.get_instance()
+    parent_task = get_task(parent_id)
+    
+    if not priority:
+        priority = parent_task.get("priority", 3)
+    
+    subtask_id = task_manager.create_task({
+        "title": title,
+        "description": description,
+        "priority": priority,
+        "parent_id": parent_id
+    })
+    
+    return subtask_id
+
+def add_thought(task_id: str, thought: str):
+    """Add a thought to the task's thought process"""
+    task_manager = TaskManager.get_instance()
+    task_manager.add_thought_to_task(task_id, thought)
+
+def update_task_results(task_data: dict, results, folder_path="tasks"):
     """
     Updates a task file with the results/insights from thinking about it.
-    
-    Enhanced to provide more comprehensive result tracking and logging.
     
     Args:
         task_data (dict): The original task data
@@ -154,68 +67,15 @@ def update_task_results(task_data, results, folder_path="tasks"):
     Returns:
         dict: Updated task information with processing metadata
     """
-    try:
-        # Validate input
-        if not task_data or not isinstance(task_data, dict):
-            log(f"Invalid task data: {task_data}")
-            return {"success": False, "error": "Invalid task data"}
-        
-        # Prepare results for storage
-        if not isinstance(results, (str, dict, list)):
-            results = str(results)
-        
-        # Add processing timestamp
-        processing_timestamp = datetime.now().isoformat()
-        
-        # Create a comprehensive result object
-        result_entry = {
-            "timestamp": processing_timestamp,
-            "raw_results": results,
-            "processed": False,
-            "insights": {},
-            "status": "pending"
-        }
-        
-        # Try to extract insights if results is a dictionary
-        if isinstance(results, dict):
-            result_entry["insights"] = results
-            result_entry["processed"] = True
-            result_entry["status"] = "completed"
-        
-        # Update task data
-        if "results_history" not in task_data:
-            task_data["results_history"] = []
-        
-        task_data["results_history"].append(result_entry)
-        task_data["last_processed"] = processing_timestamp
-        
-        # Determine task status
-        if result_entry["status"] == "completed":
-            task_data["status"] = "completed"
-        
-        # Determine file path
-        if task_data.get("status") == "completed":
-            file_path = os.path.join(COMPLETED_TASKS_DIR, f"{task_data['id']}.json")
-        else:
-            file_path = os.path.join(ACTIVE_TASKS_DIR, f"{task_data['id']}.json")
-        
-        # Write updated task data
-        with open(file_path, 'w') as f:
-            json.dump(task_data, f, indent=2)
-        
-        log(f"Task {task_data.get('id', 'unknown')} updated with results")
-        
-        return {
-            "success": True, 
-            "task_id": task_data.get('id'),
-            "status": task_data.get('status'),
-            "processed_at": processing_timestamp
-        }
-    
-    except Exception as e:
-        log(f"Error updating task results: {e}")
-        return {
-            "success": False, 
-            "error": str(e),
-            "task_id": task_data.get('id')
-        }
+    task_manager = TaskManager.get_instance()
+    return task_manager.update_task_results(task_data, results, folder_path)
+
+def update_task_status(task_id: str, status: str, results: Optional[Dict] = None):
+    """Update task status and optionally add results"""
+    task_manager = TaskManager.get_instance()
+    task_manager.update_task_status(task_id, status, results)
+
+def create_task_from_json(task_data: Dict) -> str:
+    """Create a new task from JSON data"""
+    task_manager = TaskManager.get_instance()
+    return task_manager.create_task(task_data)

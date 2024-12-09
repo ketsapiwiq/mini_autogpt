@@ -3,6 +3,7 @@ import json
 from datetime import datetime
 from utils.log import log
 import time
+from typing import Dict, Optional, Union
 
 # Use absolute path for tasks directory
 TASKS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "tasks")
@@ -183,6 +184,120 @@ class TaskManager:
             task_id (str): ID of the task to pause
         """
         self.update_task_status(task_id, 'paused')
+
+    def get_task_by_id(self, task_id: str) -> Dict:
+        """Retrieve a task by its ID from active or completed tasks"""
+        task_file = os.path.join(ACTIVE_TASKS_DIR, task_id, "task.json")
+        if not os.path.exists(task_file):
+            task_file = os.path.join(COMPLETED_TASKS_DIR, f"{task_id}.json")
+        
+        if not os.path.exists(task_file):
+            raise ValueError(f"Task {task_id} not found")
+        
+        with open(task_file, 'r') as f:
+            return json.load(f)
+
+    def get_highest_priority_task(self) -> Optional[Dict]:
+        """Get the highest priority pending task"""
+        active_tasks = self.get_active_tasks()
+        pending_tasks = [task for task in active_tasks if task.get("status", "pending") == "pending"]
+        
+        if not pending_tasks:
+            return None
+        
+        # Sort by priority (lower number = higher priority)
+        return sorted(pending_tasks, key=lambda x: x.get("priority", 3))[0]
+
+    def add_thought_to_task(self, task_id: str, thought: str):
+        """Add a thought to the task's thought process"""
+        task_file = os.path.join(ACTIVE_TASKS_DIR, task_id, "task.json")
+        
+        with open(task_file, 'r') as f:
+            task_data = json.load(f)
+        
+        if "thoughts" not in task_data:
+            task_data["thoughts"] = []
+        task_data["thoughts"].append(thought)
+        
+        with open(task_file, 'w') as f:
+            json.dump(task_data, f, indent=2)
+
+    def update_task_results(self, task_data: dict, results, folder_path="tasks") -> Dict:
+        """
+        Updates a task file with the results/insights from thinking about it.
+        
+        Args:
+            task_data (dict): The original task data
+            results (Union[str, dict, list]): The thinking results to add
+            folder_path (str, optional): The path to the tasks folder
+        
+        Returns:
+            dict: Updated task information with processing metadata
+        """
+        try:
+            # Validate input
+            if not task_data or not isinstance(task_data, dict):
+                log(f"Invalid task data: {task_data}")
+                return {"success": False, "error": "Invalid task data"}
+            
+            # Prepare results for storage
+            if not isinstance(results, (str, dict, list)):
+                results = str(results)
+            
+            # Add processing timestamp
+            processing_timestamp = datetime.now().isoformat()
+            
+            # Create a comprehensive result object
+            result_entry = {
+                "timestamp": processing_timestamp,
+                "raw_results": results,
+                "processed": False,
+                "insights": {},
+                "status": "pending"
+            }
+            
+            # Try to extract insights if results is a dictionary
+            if isinstance(results, dict):
+                result_entry["insights"] = results
+                result_entry["processed"] = True
+                result_entry["status"] = "completed"
+            
+            # Update task data
+            if "results_history" not in task_data:
+                task_data["results_history"] = []
+            
+            task_data["results_history"].append(result_entry)
+            task_data["last_processed"] = processing_timestamp
+            
+            # Determine task status
+            if result_entry["status"] == "completed":
+                task_data["status"] = "completed"
+            
+            # Determine file path
+            task_id = task_data['id']
+            task_dir = os.path.join(ACTIVE_TASKS_DIR, task_id)
+            task_file = os.path.join(task_dir, "task.json")
+            
+            # Write updated task data
+            with open(task_file, 'w') as f:
+                json.dump(task_data, f, indent=2)
+            
+            log(f"Task {task_id} updated with results")
+            
+            return {
+                "success": True, 
+                "task_id": task_id,
+                "status": task_data.get('status'),
+                "processed_at": processing_timestamp
+            }
+        
+        except Exception as e:
+            log(f"Error updating task results: {e}")
+            return {
+                "success": False, 
+                "error": str(e),
+                "task_id": task_data.get('id')
+            }
 
 # Expose the TaskManager as a module-level singleton
 task_manager = TaskManager.get_instance()

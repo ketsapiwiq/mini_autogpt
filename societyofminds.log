@@ -1,0 +1,14 @@
+2024-12-09 01:08:15,058 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7407649358:AAEzR5q6p-InqA4p5C59Z3W9buMvEO9ZehA/sendMessage "HTTP/1.1 200 OK"
+2024-12-09 01:08:15,181 - openai._base_client - INFO - Retrying request to /chat/completions in 0.481787 seconds
+2024-12-09 01:08:15,664 - openai._base_client - INFO - Retrying request to /chat/completions in 0.801505 seconds
+2024-12-09 01:08:16,511 - openai._base_client - INFO - Retrying request to /chat/completions in 0.444955 seconds
+2024-12-09 01:08:16,957 - openai._base_client - INFO - Retrying request to /chat/completions in 0.930291 seconds
+2024-12-09 01:08:17,962 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7407649358:AAEzR5q6p-InqA4p5C59Z3W9buMvEO9ZehA/sendMessage "HTTP/1.1 200 OK"
+2024-12-09 01:08:18,099 - openai._base_client - INFO - Retrying request to /chat/completions in 0.452741 seconds
+2024-12-09 01:08:18,553 - openai._base_client - INFO - Retrying request to /chat/completions in 0.775753 seconds
+2024-12-09 01:08:19,359 - openai._base_client - INFO - Retrying request to /chat/completions in 0.375988 seconds
+2024-12-09 01:08:19,736 - openai._base_client - INFO - Retrying request to /chat/completions in 0.938080 seconds
+2024-12-09 01:08:20,794 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7407649358:AAEzR5q6p-InqA4p5C59Z3W9buMvEO9ZehA/sendMessage "HTTP/1.1 200 OK"
+2024-12-09 01:08:20,917 - openai._base_client - INFO - Retrying request to /chat/completions in 0.408902 seconds
+2024-12-09 01:08:21,327 - openai._base_client - INFO - Retrying request to /chat/completions in 0.998751 seconds
+2024-12-09 01:08:22,352 - openai._base_client - INFO - Retrying request to /chat/completions in 0.417902 seconds

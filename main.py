@@ -108,67 +108,78 @@ def process_tasks():
     api_key, chat_id = get_telegram_config()
     telegram_utils = TelegramUtils.get_instance(api_key, chat_id) if api_key and chat_id else None
     
-    # Iterate through task directories in the active tasks folder
-    for task_id in os.listdir(ACTIVE_TASKS_DIR):
-        task_file_path = os.path.join(ACTIVE_TASKS_DIR, task_id, "task.json")
+    while True:
+        # Get the current list of tasks
+        tasks_to_process = os.listdir(ACTIVE_TASKS_DIR)
         
-        # Check if task.json exists for this task
-        if os.path.exists(task_file_path):
-            try:
-                with open(task_file_path, 'r') as file:
-                    task = json.load(file)
-                
-                # Send Telegram message about current task
-                if telegram_utils:
-                    task_message = (
-                        f"🤖 Starting to work on task:\n"
-                        f"ID: {task.get('id', 'N/A')}\n"
-                        f"Title: {task.get('title', 'Untitled')}\n"
-                        f"Description: {task.get('description', 'No description')}\n"
-                        f"Priority: {task.get('priority', 'Unspecified')}"
-                    )
-                    telegram_utils.send_message(task_message)
-                
-                # Create a Society of Minds agent for this task
-                society_of_mind_agent = SocietyOfMindAgent(
-                    f"task_{task_id}",
-                    chat_manager=manager,
-                    llm_config=manager.llm_config,
-                )
-                
-                # Print task details
-                print(f"Processing Task ID: {task.get('id', 'N/A')}")
-                print(f"Title: {task.get('title', 'Untitled')}")
-                print(f"Description: {task.get('description', 'No description')}")
-                print(f"Priority: {task.get('priority', 'Unspecified')}")
-                print(f"Status: {task.get('status', 'Unknown')}")
-                
-                # Process task through Society of Minds
-                try:
-                    user_proxy.initiate_chat(
-                        society_of_mind_agent, 
-                        message=json.dumps(task)
-                    )
-                    
-                    # Mark task as completed after successful processing
-                    from action.tasks import task_manager
-                    task_manager.update_task_status(task_id, 'completed')
-                except Exception as e:
-                    print(f"Error processing task with Society of Minds: {e}")
-                    print(traceback.format_exc())
-                    
-                    # Send error message to Telegram
-                    if telegram_utils:
-                        telegram_utils.send_message(f"❌ Error processing task {task_id}: {str(e)}")
-                
-                print("---")
-                active_tasks.append(task)
+        # Break the loop if no tasks remain
+        if not tasks_to_process:
+            print("No active tasks remaining.")
+            break
+        
+        for task_id in tasks_to_process:
+            task_file_path = os.path.join(ACTIVE_TASKS_DIR, task_id, "task.json")
             
-            except json.JSONDecodeError:
-                print(f"Error reading task file: {task_file_path}")
-            except Exception as e:
-                print(f"Unexpected error processing task: {e}")
-                print(traceback.format_exc())
+            # Check if task.json exists for this task
+            if os.path.exists(task_file_path):
+                try:
+                    with open(task_file_path, 'r') as file:
+                        task = json.load(file)
+                    
+                    # Send Telegram message about current task
+                    if telegram_utils:
+                        task_message = (
+                            f"🤖 Starting to work on task:\n"
+                            f"ID: {task.get('id', 'N/A')}\n"
+                            f"Title: {task.get('title', 'Untitled')}\n"
+                            f"Description: {task.get('description', 'No description')}\n"
+                            f"Priority: {task.get('priority', 'Unspecified')}"
+                        )
+                        telegram_utils.send_message(task_message)
+                    
+                    # Create a Society of Minds agent for this task
+                    society_of_mind_agent = SocietyOfMindAgent(
+                        f"task_{task_id}",
+                        chat_manager=manager,
+                        llm_config=manager.llm_config,
+                    )
+                    
+                    # Print task details
+                    print(f"Processing Task ID: {task.get('id', 'N/A')}")
+                    print(f"Title: {task.get('title', 'Untitled')}")
+                    print(f"Description: {task.get('description', 'No description')}")
+                    print(f"Priority: {task.get('priority', 'Unspecified')}")
+                    print(f"Status: {task.get('status', 'Unknown')}")
+                    
+                    # Process task through Society of Minds
+                    try:
+                        user_proxy.initiate_chat(
+                            society_of_mind_agent, 
+                            message=json.dumps(task)
+                        )
+                        
+                        # Mark task as completed after successful processing
+                        from action.tasks import task_manager
+                        task_manager.update_task_status(task_id, 'completed')
+                        
+                        # Break the loop after completing the first task
+                        break
+                    except Exception as e:
+                        print(f"Error processing task with Society of Minds: {e}")
+                        print(traceback.format_exc())
+                        
+                        # Send error message to Telegram
+                        if telegram_utils:
+                            telegram_utils.send_message(f"❌ Error processing task {task_id}: {str(e)}")
+                    
+                    print("---")
+                    active_tasks.append(task)
+                
+                except json.JSONDecodeError:
+                    print(f"Error reading task file: {task_file_path}")
+                except Exception as e:
+                    print(f"Unexpected error processing task: {e}")
+                    print(traceback.format_exc())
     
     if not active_tasks:
         print("No active tasks found.")
