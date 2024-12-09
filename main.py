@@ -153,8 +153,8 @@ def process_tasks():
                     
                     # Process task through Society of Minds
                     try:
-                        user_proxy.initiate_chat(
-                            society_of_mind_agent, 
+                        user_proxy.initiate_chat(society_of_mind_agent, max_turns=2,
+                            
                             message=json.dumps(task)
                         )
                         
@@ -163,6 +163,7 @@ def process_tasks():
                         task_manager.update_task_status(task_id, 'completed')
                         
                         # Break the loop after completing the first task
+                        exit()
                         break
                     except Exception as e:
                         print(f"Error processing task with Society of Minds: {e}")
